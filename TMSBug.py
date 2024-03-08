@@ -6,18 +6,15 @@ import configparser
 import asyncio
 
 from functions.chatlog import chat_log_save, get_speak_count
-from functions.getprize import  use_apple, use_fashionbox, prizechannelblacklist
 from functions.CreateBossDataEmbed import Create_Boss_Data_Embed, boss_aliases
-from functions.CreatePrizeEmbed import Create_FashionBox_embed, Create_Apple_embed
 from functions.tinyfunctions import probably
 from functions.CreateMemoEmbed import CreateFarmingEmbed, CreateCombatEmbed
-from functions.tinyfunctions import RollDice
 from functions.Cogs.Discord_Commands import DiscordCommands
 from functions.Cogs.SlashCommands import SlashCommands
 
 try:
     _TMSBot_CONF = configparser.ConfigParser()
-    config_path = 'C:\\Users\\User\\Desktop\\maplestory_discordbot\\config.ini'
+    config_path = 'C:\\Users\\User\\Desktop\\DiscordBot\\Config\\TMSBug_testconfig.ini'
     _TMSBot_CONF.read(config_path, encoding="utf-8")
 except FileNotFoundError:
     print("`config.ini` file missing.")

@@ -7,18 +7,12 @@ from discord.app_commands import Choice
 import configparser
 import datetime
 
-from functions.getprize import use_apple, use_fashionbox
+from functions.getprize import use_apple, use_fashionbox, use_apple_FrenzyTotem
 from functions.CreatePrizeEmbed import Create_FashionBox_embed, Create_Apple_embed
 from functions.CreateBossDataEmbed import Create_Boss_Data_Embed, get_difficulty_value
 from functions.RequestUnionRank import Create_UnionRank_embed
 from functions.CreateSolErdaFragmentEmbed import CreateSolErdaFragment
 
-try:
-    _TMSBot_CONF = configparser.ConfigParser()
-    config_path = 'C:\\Users\\User\\Desktop\\maplestory_discordbot\\config.ini'
-    _TMSBot_CONF.read(config_path, encoding="utf-8")
-except FileNotFoundError:
-    print("`config.ini` file missing.")
 
 now_HMS = datetime.datetime.now().strftime('%H:%M:%S')
 
@@ -56,11 +50,11 @@ class SlashCommands(commands.Cog):
     @app_commands.command(name="抽", description="抽獎")
     async def getprize(self, interaction: discord.Interaction, type: str):
         if type == "GoldApple":
-            Message = use_apple(_TMSBot_CONF["function"]["GoldAppleDate"], interaction.channel.id, interaction.user.mention)
+            Message = use_apple(interaction.user.mention)
         elif type == "FashionBox":
-            Message = use_fashionbox(_TMSBot_CONF["function"]["FashionBoxDate"], interaction.channel.id, interaction.user.mention)
+            Message = use_fashionbox(interaction.user.mention)
         elif type == "FrenzyTotem":
-            Message = use_apple('FrenzyTotem', interaction.channel.id, interaction.user.mention)
+            Message = use_apple_FrenzyTotem(interaction.user.mention)
         elif type == "boyngirl":
             Message = "抽不到"
 
@@ -80,9 +74,9 @@ class SlashCommands(commands.Cog):
     )
     async def getprizechance(self, interaction: discord.Interaction, type: str):
         if type == "GoldApple":
-            embed = Create_Apple_embed(_TMSBot_CONF["function"]["GoldAppleDate"])
+            embed = Create_Apple_embed()
         elif type == "FashionBox":
-            embed = Create_FashionBox_embed(_TMSBot_CONF["function"]["FashionBoxDate"])
+            embed = Create_FashionBox_embed()
             
         print(f'{now_HMS}, Guild：{interaction.guild}, User：{interaction.user} ,Slash：GetPrizeChance')
         print('-'*40)

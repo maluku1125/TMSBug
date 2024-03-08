@@ -2,10 +2,12 @@ import json
 import discord
 
 
-def Create_FashionBox_embed(FashionBoxProbabilityTableDate):
-    with open(f'C:\\Users\\User\Desktop\\maplestory_discordbot\\Data\\FashionBoxProbabilityTable.json', 'r', encoding='utf-8') as f:
+def Create_FashionBox_embed():
+    with open(f'C:\\Users\\User\\Desktop\DiscordBot\\TMSBug_v2\\Data\\FashionBoxProbabilityTable.json', 'r', encoding='utf-8') as f:
 
         data = json.load(f)
+
+        FashionBoxProbabilityTableDate = list(data.keys())[-1]
         fashion_box_chance_dict = data[FashionBoxProbabilityTableDate]
 
         fashionbox_table=[]
@@ -25,10 +27,13 @@ def Create_FashionBox_embed(FashionBoxProbabilityTableDate):
         
     return embed
 
-def Create_Apple_embed(AppleProbabilityTableDate):
-    with open(f'C:\\Users\\User\Desktop\\maplestory_discordbot\\Data\\GoldAppleProbabilityTable.json', 'r', encoding='utf-8') as f:
+def Create_Apple_embed():
+    with open(f'C:\\Users\\User\\Desktop\DiscordBot\\TMSBug_v2\\Data\\GoldAppleProbabilityTable.json', 'r', encoding='utf-8') as f:
 
         data = json.load(f)
+
+        AppleProbabilityTableDate = list(data.keys())[-1]
+
         Apple_chance_dict = data[AppleProbabilityTableDate]['apple_chance']
         box_chance_dict = data[AppleProbabilityTableDate]['box_chance']
 

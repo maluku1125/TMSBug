@@ -4,7 +4,7 @@ from functions.tinyfunctions import probably
 
 maxfragment = 20184
 
-with open(f'C:\\Users\\User\Desktop\\maplestory_discordbot\\Data\\HexaNodesCost.json', 'r', encoding='utf-8') as f:
+with open(f'C:\\Users\\User\\Desktop\\DiscordBot\\TMSBug_v2\\Data\\HexaNodesCost.json', 'r', encoding='utf-8') as f:
     HexaNodesCost = json.load(f)
 
 def Calculatefragment(SkillNodes1, MasteryNodes1, BoostNode1, BoostNode2, BoostNode3, BoostNode4):
