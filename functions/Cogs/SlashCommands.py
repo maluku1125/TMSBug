@@ -12,6 +12,7 @@ from functions.CreatePrizeEmbed import Create_FashionBox_embed, Create_Apple_emb
 from functions.CreateBossDataEmbed import Create_Boss_Data_Embed, get_difficulty_value
 from functions.RequestUnionRank import Create_UnionRank_embed
 from functions.CreateSolErdaFragmentEmbed import CreateSolErdaFragment
+from functions.CreateMemoEmbed import CreateFarmingEmbed, CreateCombatEmbed
 
 SlashCount = 0
 
@@ -177,9 +178,11 @@ class SlashCommands(commands.Cog):
     #-----------------戰地-----------------
     @app_commands.command(name="戰地查詢", description="查戰地排行")
     async def unionsearch(self, interaction: discord.Interaction, playername: str):
+        await interaction.response.defer()
         embed = Create_UnionRank_embed(playername)
-        PrintSlash('unionsearch', interaction)
-        await interaction.response.send_message(embed=embed)
+        
+        PrintSlash('unionsearch', interaction)                
+        await interaction.edit_original_response(embed=embed)
 
     #-----------------碎碎-----------------
     @app_commands.command(name="碎片進度", description="碎碎進度")
@@ -190,5 +193,17 @@ class SlashCommands(commands.Cog):
         PrintSlash('calculatefragment', interaction)
         await interaction.response.send_message(embed=embed)
 
+    #-----------------MEMO-----------------
+    @app_commands.command(name="練等備忘", description="練等備忘")
+    async def farmingmemo(self, interaction: discord.Interaction):
+        embed = CreateFarmingEmbed()
+        PrintSlash('farmingmemo', interaction)
+        await interaction.response.send_message(embed=embed)
 
-    
+  
+    @app_commands.command(name="打王備忘", description="打王備忘")
+    async def combatmemo(self, interaction: discord.Interaction):
+        embed = CreateCombatEmbed()
+        PrintSlash('combatmemo', interaction)
+        await interaction.response.send_message(embed=embed)
+
