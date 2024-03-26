@@ -148,7 +148,7 @@ class TMSBot(commands.AutoShardedBot):
                         
                         date = time.strftime('%Y%m%d', time.localtime(time.time()))
 
-                        await message.channel.send(file = discord.File(f'C:\\Users\\User\\Desktop\\DiscordChatlog\\ChatLog\\{date}_TMS新楓之谷testver_Chatlog.csv'))
+                        await message.channel.send(file = discord.File(f'C:\\Users\\User\\Desktop\\DiscordChatlog\\ChatLog\\{date}_TMS新楓之谷_Chatlog.csv'))
                         return
         
             #Count ServerMember
