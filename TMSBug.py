@@ -15,6 +15,8 @@ from functions.Cogs.Slash_RequestUnionRank import Slash_RequestUnionRank
 from functions.Cogs.Slash_CreateBossDataEmbed import Slash_CreateBossDataEmbed
 from functions.Cogs.Slash_CreatePrizeEmbed import Slash_CreatePrizeEmbed
 from functions.Cogs.Slash_CreateSolErdaFragmentEmbed import Slash_CreateSolErdaFragmentEmbed
+from functions.Cogs.Slash_RequestMapleEvents import Slash_RequestMapleEvents
+
 try:
     _TMSBot_CONF = configparser.ConfigParser()
     config_path = 'C:\\Users\\User\\Desktop\\DiscordBot\\Config\\TMSBug_config.ini'
@@ -87,6 +89,8 @@ class TMSBot(commands.AutoShardedBot):
         print('Cogs:Slash_CreatePrizeEmbed loaded')
         await self.add_cog(Slash_CreateSolErdaFragmentEmbed(self))
         print('Cogs:Slash_CreateSolErdaFragmentEmbed loaded')
+        await self.add_cog(Slash_RequestMapleEvents(self))
+        print('Cogs:Slash_RequestMapleEvents loaded')
 
 
         dev_guild_id = self._config["bot"]["dev_guild"]
