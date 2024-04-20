@@ -178,6 +178,18 @@ class TMSBot(commands.AutoShardedBot):
             #----------------------------------------
             if message.content == '<:ban:597267067581890571>' or message.content == '<:ban_g:927438410182963232>' or message.content == '<:ban_w:927423587911077990>':
                 await message.add_reaction('<:img17_flat:839749212152528916>')
+
+            if message.content == '<@684625575729561609> 我要入會地':
+                if message.channel.id == 656213444621631508:
+
+                    thread_id = 1225733037782859776  # 討論串 ID
+                    thread = self.get_channel(thread_id)
+
+                    await thread.send(f'{message.author.mention} hi，你到會地了')
+                    await message.delete()
+                else:
+                    await message.delete()
+
     
         #MEMO資訊
         if message.content == '練等備忘' or message.content == '鍊等備忘':
