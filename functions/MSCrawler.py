@@ -36,8 +36,9 @@ def Get_Website_data(page):
     table_data = []
     for row in soup.find_all('tr'): # 抓取所有表格"列"
         data = [cell.text.strip() for cell in row.find_all('td')] # 整理每列的資料
-        if not data[1]: 
-            data[1] = ''
+        if len(data) < 2: 
+            data.append(last_probability)
+        last_probability = data[1]  
         if data[0] == '道具名稱':
             table_data.append([]) # 如果資料是標頭則新增arr 
         table_data[-1].append(data) # 新增資料至最新的arr
@@ -199,7 +200,7 @@ def save_apple_json_file():
     
     # 將數據寫入文件
     with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(existing_data, f, ensure_ascii=False)
+        json.dump(existing_data, f, indent=4, ensure_ascii=False)
     print('Data saved to the file.')
     result = 'Data saved to the file.'
     return result
@@ -229,7 +230,7 @@ def save_fashionbox_json_file():
     
     # 將數據寫入文件
     with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(existing_data, f, ensure_ascii=False)
+        json.dump(existing_data, f, indent=4, ensure_ascii=False)
     print('Data saved to the file.')
     result = 'Data saved to the file.'
     return result

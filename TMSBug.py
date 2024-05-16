@@ -16,6 +16,7 @@ from functions.Cogs.Slash_CreateBossDataEmbed import Slash_CreateBossDataEmbed
 from functions.Cogs.Slash_CreatePrizeEmbed import Slash_CreatePrizeEmbed
 from functions.Cogs.Slash_CreateSolErdaFragmentEmbed import Slash_CreateSolErdaFragmentEmbed
 from functions.Cogs.Slash_RequestMapleEvents import Slash_RequestMapleEvents
+from functions.AIModels import AIChat_response
 
 try:
     _TMSBot_CONF = configparser.ConfigParser()
@@ -64,6 +65,7 @@ class TMSBot(commands.AutoShardedBot):
         self.session = None
         self.uptime = None
         self.time_date = ''
+        self.noticeguilds = []
         
         print('-'*25)
         print('TMSBot is Loading')
@@ -126,6 +128,12 @@ class TMSBot(commands.AutoShardedBot):
             return
         now_HMS = datetime.datetime.now().strftime('%H:%M:%S')
 
+        if message.guild.id != int(self._config["function"]["tmsguildid"]):
+            if message.guild not in self.noticeguilds:
+                await message.channel.send(f'```邪惡的蟲蟲將在5/18回到TMS新楓之谷群了，\n但我可以派出我的分身TMSBug_v2來到【{message.guild}】，\n看到這訊息的冒險者阿，趕緊聯絡負責召喚魔法的管理員進行召喚吧！```[召喚蟲蟲分身!](https://reurl.cc/aLj8V9)')
+                self.noticeguilds.append(message.guild)
+                print(f'在{message.guild}發送了換蟲通知')
+
         #TMS server only function
         if message.guild.id == int(self._config["function"]["tmsguildid"]):
             if message.author.bot != True :
@@ -137,6 +145,36 @@ class TMSBot(commands.AutoShardedBot):
                 print(f'{now_HMS} #BOTSpeak,Channel：{message.channel}, User：{message.author}')
                 print("Content：", message.content, message.stickers, message.attachments)
                 print('-'*40)
+
+            #非和協會地
+            if self.user in message.mentions:
+                if '我要入會地' in message.content:
+                    if message.channel.id == 656213444621631508:
+                            
+                        thread_id = 1225733037782859776  # 討論串 ID
+                        thread = self.get_channel(thread_id)
+
+                        await thread.send(f'{message.author.mention} hi，你到會地了')
+                        await message.delete()
+                    else:
+                        await message.delete()
+
+            #   Chat AI
+            # 檢查消息是否提及了機器人
+            if self.user in message.mentions:
+
+                if "我要入會地" in message.content:
+                    return
+
+                # 獲取消息的內容，並去除提及機器人的部分
+                content = message.content.replace(f'<@!{self.user.id}>', '').strip()
+
+                await message.channel.typing()            
+                if message.author.nick == None:
+                    response = AIChat_response(message.author.name, content)       
+                else:  
+                    response = AIChat_response(message.author.nick, content)            
+                await message.channel.send(response)
 
             #Chat Log
             #----------------------------------------
@@ -179,72 +217,45 @@ class TMSBot(commands.AutoShardedBot):
             if message.content == '<:ban:597267067581890571>' or message.content == '<:ban_g:927438410182963232>' or message.content == '<:ban_w:927423587911077990>':
                 await message.add_reaction('<:img17_flat:839749212152528916>')
 
-            if message.content == '<@684625575729561609> 我要入會地':
-                if message.channel.id == 656213444621631508:
-
-                    thread_id = 1225733037782859776  # 討論串 ID
-                    thread = self.get_channel(thread_id)
-
-                    await thread.send(f'{message.author.mention} hi，你到會地了')
-                    await message.delete()
-                else:
-                    await message.delete()
-
     
         #MEMO資訊
         if message.content == '練等備忘' or message.content == '鍊等備忘':
             embed = CreateFarmingEmbed()
-            sent_message = await message.channel.send(embed=embed)
+            await message.channel.send(embed=embed)
             print(f'{now_HMS}, Guild：{message.channel.guild}, User：{message.author} ,FarmingMemo')
             print('-'*40)
 
         if message.content == '打王備忘' or message.content == 'BOSS備忘' or message.content == 'Boss備忘' or message.content == 'boss備忘':
             embed = CreateCombatEmbed()
-            sent_message = await message.channel.send(embed=embed)
+            await message.channel.send(embed=embed)
             print(f'{now_HMS}, Guild：{message.channel.guild}, User：{message.author} ,CombatMemo')
             print('-'*40)
 
-        #BOSS資訊    
-        #----------------------------------------        
-        if message.content in boss_aliases:    
 
-            if message.content == '蟲蟲':
-                await message.channel.send(f'叫我嗎?')
-            else:
-                await message.add_reaction('<:img17:588950160399269889>')
-                embed, num_subtitles= Create_Boss_Data_Embed(message.content, 0)
-                if probably(0.02):
-                    embed, num_subtitles= Create_Boss_Data_Embed("蟲蟲", 0)  
-                sent_message = await message.channel.send(embed=embed)
-                await sent_message.add_reaction('🔄')
-                await sent_message.add_reaction('❌')
+    async def on_reaction_add(self, reaction, user):
+        print(f'{user}, {reaction}')
+        #TMS server only function
+        if reaction.message.guild.id == int(self._config["function"]["tmsguildid"]):
+            if str(reaction) == '<:Bahamut:1237775873239679067>':                
+                if reaction.count > 1:
+                    print(f'{user}替{reaction.message.author}查詢了巴哈，但是第二次')
+                    return                
+                if reaction.message.content == None:
+                    print(f'{user}替{reaction.message.author}查詢了巴哈，但是沒有內容')
+                    return
+                content_without_spaces = reaction.message.content.replace(' ', '')
+                content_without_spaces = content_without_spaces.replace('　', '')
 
-            Bossmode = [0]   # 將 Bossmode 定義為全域變數
+                if reaction.message.author.bot or user.bot: 
+                    print(f'{user}替{reaction.message.author}查詢了{content_without_spaces}，但是是機器人')
+                    return               
 
-            @self.event
-            async def on_reaction_add(reaction, user):
-                if user == self.user:
-                    return  # 忽略機器人自身的反應
+                print(f'{user}替{reaction.message.author}查詢了{content_without_spaces}')
+                print('-'*40)
+                reaction_channel = reaction.message.channel
+                await reaction_channel.send(f'{reaction.message.author.mention}，{user.mention}幫你查詢了[你問的內容](https://forum.gamer.com.tw/search.php?bsn=7650&q={content_without_spaces}&exact=0&advancedSearch=1&page=1)')
 
-                if reaction.message.author != self.user:
-                    return  # 忽略機器人所發送訊息以外的反應
-
-                if reaction.message.id != sent_message.id:
-                    return  # 忽略其他訊息的反應
-
-                if reaction.emoji == '🔄':
-                    await reaction.remove(user)  # 刪除使用者加上的反應                
-                    await asyncio.wait_for(switch_boss_mode(), timeout=10)  # 等待使用者反應，設定超時時間為 10 秒    
-                if reaction.emoji == '❌':
-                    await sent_message.delete()
-                                
-
-            async def switch_boss_mode():
-                Bossmode[0] = (Bossmode[0] + 1) % num_subtitles
-
-                embed, _ = Create_Boss_Data_Embed(message.content, Bossmode[0])    
-                await sent_message.edit(embed=embed)
-
+        
     async def on_member_join(self, member):
         if member.guild.id == int(self._config["function"]["tmsguildid"]):
             print(f'{member} 加入了伺服器')
