@@ -128,11 +128,20 @@ class TMSBot(commands.AutoShardedBot):
             return
         now_HMS = datetime.datetime.now().strftime('%H:%M:%S')
 
-        if message.guild.id != int(self._config["function"]["tmsguildid"]):
+
+        if message.guild.id != 807885362583830568 and message.guild.id != 420666881368784929 :
             if message.guild not in self.noticeguilds:
-                await message.channel.send(f'```邪惡的蟲蟲將在5/18回到TMS新楓之谷群了，\n但我可以派出我的分身TMSBug_v2來到【{message.guild}】，\n看到這訊息的冒險者阿，趕緊聯絡負責召喚魔法的管理員進行召喚吧！```[召喚蟲蟲分身!](https://reurl.cc/aLj8V9)')
-                self.noticeguilds.append(message.guild)
                 print(f'在{message.guild}發送了換蟲通知')
+                await message.channel.send(f'邪惡的蟲蟲將在5/18回到TMS新楓之谷群了，\n但我可以派出我的分身TMSBug_v2來到【{message.guild}】，\n看到這訊息的冒險者阿，趕緊聯絡負責召喚魔法的管理員進行召喚吧！[召喚蟲蟲分身!](https://reurl.cc/aLj8V9)')
+                await message.channel.send(f'```【{message.guild}】的各位冒險者您好，\n蟲蟲將在這則訊息後退出伺服器，\n請通知貴群組的管理員前來邀請新的 蟲蟲v2 進入伺服器，\nv2將無法再讀取聊天訊息，相關功能需藉由"/指令"來進行，\n目前已排定會於v2上新增各式功能，敬請期待，\n最後，YUYU在這邊謝謝大家的支持與愛護！```')
+                self.noticeguilds.append(message.guild)
+                
+                try:
+                    await message.guild.leave()
+                except Exception as e:
+                    print(f'離開伺服器時出現錯誤: {e}')
+                    
+                print(f'離開了{message.guild}伺服器')
 
         #TMS server only function
         if message.guild.id == int(self._config["function"]["tmsguildid"]):
@@ -233,7 +242,6 @@ class TMSBot(commands.AutoShardedBot):
 
 
     async def on_reaction_add(self, reaction, user):
-        print(f'{user}, {reaction}')
         #TMS server only function
         if reaction.message.guild.id == int(self._config["function"]["tmsguildid"]):
             if str(reaction) == '<:Bahamut:1237775873239679067>':                
