@@ -4,10 +4,6 @@ from discord.ext import commands
 import datetime
 import psutil
 import time
-
-from functions.CreateMemoEmbed import CreateFarmingEmbed, CreateCombatEmbed
-from functions.MSCrawler import Format_ApplePrizeData, Format_FashionBoxPrizeData, save_apple_json_file, save_fashionbox_json_file
-from functions.GetPrize import reloaddata
  
 process = psutil.Process()
 
@@ -25,7 +21,7 @@ memory_usage_percent = memory_usage_mb / total_memory_mb * 100
 owner_id = '310164490391912448'
 
 # 版本  
-version = 'v2.5.6b'
+version = 'v2.5.7b'
 
 # 在程式開始運行時記錄當前的時間
 start_time = time.time()
@@ -52,7 +48,7 @@ class Slash_BasicCommands(commands.Cog):
 
     #-----------------help-----------------
     @app_commands.command(name="help",description="help")
-    @app_commands.describe(dev_func = "起源")
+    @app_commands.describe(dev_func = "dev_func")
 
     async def help(self, interaction: discord.Interaction, dev_func: str = None):
 
@@ -71,27 +67,7 @@ class Slash_BasicCommands(commands.Cog):
             except Exception as e:
                 print(f'Failed to unload extension: {e}')
             print('Unload Slash_CreatePrizeEmbed')
-        
-        if dev_func == 'getprizetable' and str(interaction.user.id) == '310164490391912448':
-            print('getprizetable')
-            await interaction.response.defer()
-            apple_formatted_data = Format_ApplePrizeData()
-            fashionbox_formatted_data = Format_FashionBoxPrizeData()
-            
-            await interaction.edit_original_response(content=f'{apple_formatted_data}\n{fashionbox_formatted_data}')
-        
-        if dev_func == 'addprizetable' and str(interaction.user.id) == '310164490391912448':
-            print('addprizetable')
-            await interaction.response.defer()
-            appleresult = save_apple_json_file()
-            fashionmboxresult =save_fashionbox_json_file()
-            await interaction.edit_original_response(content=f'已更新抽獎機率表\n黃金蘋果 : {appleresult}\n時尚隨機箱 : {fashionmboxresult}')
-
-        if dev_func == 'reloadprize' and str(interaction.user.id) == '310164490391912448':
-            print('reloadprize')
-            reloaddata()
-            await interaction.response.send_message(content=f'已重新加載抽獎機率表(黃金蘋果,時尚隨機箱)')
-        
+                
 
         embed = discord.Embed(
             title=f"**TMS新楓之谷BOT**", 
@@ -161,18 +137,4 @@ class Slash_BasicCommands(commands.Cog):
             await interaction.response.send_message("TMS_Bug未通過Discord驗證，可以轉至TMSBug_v2服務，請聯絡管理員邀請並於邀請後踢除TMS_Bug\n具體差異：\n```diff\n+通過discord認證\n+無法閱讀聊天室內容\n-無法使用<!>指令或讀取聊天室相關互動```\n[邀請TMSBug_v2](https://reurl.cc/aLj8V9)",embed=embed)
         else:
             await interaction.response.send_message(embed=embed)
-    #-----------------MEMO-----------------
-    @app_commands.command(name="練等備忘", description="練等備忘")
-    async def farmingmemo(self, interaction: discord.Interaction):
-        embed = CreateFarmingEmbed()
-        PrintSlash('farmingmemo', interaction)
-        await interaction.response.send_message(embed=embed)
-
-  
-    @app_commands.command(name="打王備忘", description="打王備忘")
-    async def combatmemo(self, interaction: discord.Interaction):
-        embed = CreateCombatEmbed()
-        PrintSlash('combatmemo', interaction)
-        await interaction.response.send_message(embed=embed)
-        
 
