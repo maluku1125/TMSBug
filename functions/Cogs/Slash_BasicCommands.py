@@ -132,9 +132,6 @@ class Slash_BasicCommands(commands.Cog):
         )
         
         embed.set_thumbnail(url='https://cdn.discordapp.com/emojis/957283103364235284.webp?size=96&quality=lossless')
-        PrintSlash('help', interaction)
-        if interaction.guild_id != 420666881368784929 and self.client.user.id == 684625575729561609:
-            await interaction.response.send_message("TMS_Bug未通過Discord驗證，可以轉至TMSBug_v2服務，請聯絡管理員邀請並於邀請後踢除TMS_Bug\n具體差異：\n```diff\n+通過discord認證\n+無法閱讀聊天室內容\n-無法使用<!>指令或讀取聊天室相關互動```\n[邀請TMSBug_v2](https://reurl.cc/aLj8V9)",embed=embed)
-        else:
-            await interaction.response.send_message(embed=embed)
+        PrintSlash('help', interaction)       
+        await interaction.response.send_message(embed=embed)
 

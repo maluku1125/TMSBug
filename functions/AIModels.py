@@ -1,11 +1,34 @@
 from openai import OpenAI
 import time
+from datetime import datetime
+
 
 #API_KEY = "sk-proj-zVXJbkopwsxhko68KVggT3BlbkFJyutpXXmANyymvA5HtMD1"
 API_KEY = "sk-proj-dlVgmaeisWkmbnZP6p6AT3BlbkFJ0aXULQV4M2HKIhAqLA0o"
 ORGANIZATRION_ID = "org-qEJ0Fvxg3Ttnz77ptEVGEI8I"
 
+daily_cost = 0.0
+current_day = datetime.now().day
 
+def pricingcount(model, input_token, output_token):
+
+    global daily_cost, current_day
+
+    if model == "gpt-3.5-turbo-Fine-tuning models":
+        price = input_token * 0.003 / 1000 + output_token * 0.006 / 1000
+    elif model == "gpt-4o":
+        price = input_token * 0.005 / 1000 + output_token * 0.015 / 1000
+
+    # 更新每日費用
+    daily_cost += price
+
+    # 檢查是否跨日
+    new_day = datetime.now().day
+    if new_day != current_day:
+        daily_cost = 0.0
+        current_day = new_day
+
+    return price, daily_cost
 
 class ChatCompletion:
     def __init__(self, id, choices, created, model, object, system_fingerprint, usage):
@@ -63,13 +86,12 @@ def AIChat_response(usernick, message):
         model="ft:gpt-3.5-turbo-0125:personal::9IZaBQt1",
         messages = history,
 
-        max_tokens=600,  # 生成的文本的最大長度，以 token 為單位
+        max_tokens=400,  # 生成的文本的最大長度，以 token 為單位
         temperature=0.8,  # 控制生成的文本的隨機性，值越大，生成的文本越隨機
         top_p=0.6,  # 控制生成的文本的多樣性，值越大，生成的文本越多樣
         frequency_penalty=0,  # 控制生成的文本的詞彙的頻率，值越大，生成的文本中的詞彙越常見
         presence_penalty=0  # 控制生成的文本的詞彙的存在性，值越大，生成的文本中的詞彙越少見
     )
-
 
     response_time = time.time() - start_time
 
@@ -97,12 +119,51 @@ def AIChat_response(usernick, message):
     completion_tokens = response_data['usage']['completion_tokens']
     prompt_tokens = response_data['usage']['prompt_tokens']
     total_tokens = response_data['usage']['total_tokens']
-    
+
+    price, daily_cost = pricingcount("gpt-3.5-turbo-Fine-tuning models", total_tokens, completion_tokens)
+     
     print(f'response time : {response_time:.2f} seconds')
     print(f'response : {message_contents}')
-    print(f"Completion: {completion_tokens}|Prompt: {prompt_tokens}|Total : {total_tokens}")
+    print(f"Prompt: {prompt_tokens}|Completion: {completion_tokens}|Total : {total_tokens}|Price : {daily_cost:.6f}(+{price:.6f}) USD")
     print('-'*40)
-
 
     return message_contents
 
+def AIChat_response_admin(message):
+
+    print(f"AI generating response...")
+    start_time = time.time()      
+
+    response = client.chat.completions.create(
+        
+        model="gpt-4o",
+        messages = [
+            {"role": "system", "content": "你是個AI助理，你的主要語言是繁體中文。"},
+            {"role": "user", "content": f"{message}"}
+        ],
+        temperature=0.8,  # 控制生成的文本的隨機性，值越大，生成的文本越隨機
+        top_p=0.6,  # 控制生成的文本的多樣性，值越大，生成的文本越多樣
+        frequency_penalty=0,  # 控制生成的文本的詞彙的頻率，值越大，生成的文本中的詞彙越常見
+        presence_penalty=0  # 控制生成的文本的詞彙的存在性，值越大，生成的文本中的詞彙越少見
+    )
+
+    response_time = time.time() - start_time
+
+    response_data = response.to_dict()
+    chat_completion = ChatCompletion(**response_data)
+    message_contents = chat_completion.get_message_contents() 
+
+    total_tokens = response_data['usage']['total_tokens']
+    completion_tokens = response_data['usage']['completion_tokens']
+    prompt_tokens = response_data['usage']['prompt_tokens']
+    total_tokens = response_data['usage']['total_tokens']
+
+    price, daily_cost = pricingcount("gpt-4o", total_tokens, completion_tokens)
+     
+    print(f'Ai (Admin mode) : using gpt-4o model')
+    print(f'response time : {response_time:.2f} seconds')
+    print(f'response : {message_contents}')
+    print(f"Prompt: {prompt_tokens}|Completion: {completion_tokens}|Total : {total_tokens}|Price : {daily_cost:.6f}(+{price:.6f}) USD")
+    print('-'*40)
+
+    return message_contents

@@ -30,7 +30,7 @@ class Normal_ListenMessage(commands.Cog):
                     if message.channel.id == 656213444621631508:
                             
                         thread_id = 1225733037782859776  # 討論串 ID
-                        thread = self.get_channel(thread_id)
+                        thread = self.bot.get_channel(thread_id)
 
                         await thread.send(f'{message.author.mention} hi，你到會地了')
                         await message.delete()

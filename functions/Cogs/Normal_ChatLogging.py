@@ -29,11 +29,11 @@ class Normal_ChatLogging(commands.Cog):
             if message.author.bot != True :                  
                 print(f'{now_HMS} #{self.bot.speak_count}, Guild:{message.guild}, Channel：{message.channel}, User：{message.author}')
                 print("Content：", message.content, message.stickers, message.attachments)
-                print('-'*40)
+                print('-'*30)
             else:
                 print(f'{now_HMS} #BOTSpeak, Guild:{message.guild}, Channel：{message.channel}, User：{message.author}')
                 print("Content：", message.content, message.stickers, message.attachments)
-                print('-'*40)
+                print('-'*30)
 
             #Chat Log
             #----------------------------------------
@@ -62,5 +62,5 @@ class Normal_ChatLogging(commands.Cog):
             print("Content：", message_before.content, message_before.stickers, message_before.attachments)
             print(f'Edit_After, Channel：{message_after.channel}, User：{message_after.author}')
             print("Content：", message_after.content, message_after.stickers, message_after.attachments)
-            print('-'*40) 
+            print('-'*30) 
             

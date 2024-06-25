@@ -59,8 +59,7 @@ class Normal_AdminFunctions(commands.Cog):
 
 
                         embed.set_thumbnail(url=message.guild.icon)
-                        
-
+                        await message.channel.send('<id:customize>')
                         await message.channel.send(embed=embed)
 
 
