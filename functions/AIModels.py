@@ -18,6 +18,8 @@ def pricingcount(model, input_token, output_token):
         price = input_token * 0.003 / 1000 + output_token * 0.006 / 1000
     elif model == "gpt-4o":
         price = input_token * 0.005 / 1000 + output_token * 0.015 / 1000
+    elif model == "gpt-4o-mini":
+        price = input_token * 0.000150 / 1000 + output_token * 0.000600 / 1000
 
     # 更新每日費用
     daily_cost += price
@@ -59,19 +61,21 @@ client = OpenAI(
     )
     
 # 儲存對話的歷史
-history = [
-    {
-        "role": "system", 
-        "content": (
-            "你在進行深度的角色扮演，對話時不會出現「虛擬」、「AI」、「機器人」等字眼，不會涉及現實世界。"
-            "你是隻生活在楓之谷世界中樂意助人的邪惡蟲蟲，你的主要語言是繁體中文。"
-            "會有不同的冒險者來與你對話，你會直接稱呼他們的暱稱，而不是用「你」來回應。"
-            "在對話中，你會保持你的角色，並根據他們的訊息來回應。你的回應是有趣且有點挑釁性的。"
-        )
-    }
-]
+
 
 def AIChat_response(usernick, message):
+    
+    history = [
+        {
+            "role": "system", 
+            "content": (
+                "你進行深度的角色扮演，對話時不會出現「虛擬」、「AI」、「機器人」等字眼，不涉及現實世界。"
+                "你是隻生活在楓之谷世界中樂意助人的邪惡蟲蟲，主要語言是繁體中文。"
+                "不同的冒險者來與你對話，你會直接稱呼他們的暱稱，而不用「你」來回應。"
+                "你保持你的角色，並根據他們的訊息來回應。你的回應是有趣且有點挑釁性的。"
+            )
+        }
+    ]
 
     history.append({
         "role": "user", 
@@ -83,10 +87,11 @@ def AIChat_response(usernick, message):
     start_time = time.time()      
 
     response = client.chat.completions.create(
-        model="ft:gpt-3.5-turbo-0125:personal::9IZaBQt1",
+        # model="ft:gpt-3.5-turbo-0125:personal::9IZaBQt1",
+        model="gpt-4o-mini",
         messages = history,
 
-        max_tokens=400,  # 生成的文本的最大長度，以 token 為單位
+        max_tokens=180,  # 生成的文本的最大長度，以 token 為單位
         temperature=0.8,  # 控制生成的文本的隨機性，值越大，生成的文本越隨機
         top_p=0.6,  # 控制生成的文本的多樣性，值越大，生成的文本越多樣
         frequency_penalty=0,  # 控制生成的文本的詞彙的頻率，值越大，生成的文本中的詞彙越常見
@@ -99,20 +104,20 @@ def AIChat_response(usernick, message):
     chat_completion = ChatCompletion(**response_data)
     message_contents = chat_completion.get_message_contents()    
 
-    history.append({
-        "role": "assistant", 
-        "content": f"{message_contents}"
-    })
+    # history.append({
+    #     "role": "assistant", 
+    #     "content": f"{message_contents}"
+    # })
 
     # 如果歷史中的訊息超過 3 則，則刪除除了 system 外最早的訊息
-    while len(history) > 3:
-        index_to_remove = None
-        for i in range(len(history)):
-            if history[i]["role"] != "system":
-                index_to_remove = i
-                break
-        if index_to_remove is not None:
-            del history[index_to_remove]
+    # while len(history) > 3:
+    #     index_to_remove = None
+    #     for i in range(len(history)):
+    #         if history[i]["role"] != "system":
+    #             index_to_remove = i
+    #             break
+    #     if index_to_remove is not None:
+    #         del history[index_to_remove]
 
     
     total_tokens = response_data['usage']['total_tokens']

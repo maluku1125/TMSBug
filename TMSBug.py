@@ -15,8 +15,8 @@ from functions.Cogs.Normal_AIFunctions import Normal_AIFunctions
 from functions.Cogs.Normal_SearchGamer import Normal_SearchGamer
 from functions.Cogs.Normal_AdminFunctions import Normal_AdminFunctions
 from functions.Cogs.Normal_ServerMember import Normal_ServerMember
+from functions.Cogs.Normal_BasicFunctions import Normal_BasicFunctions
 from functions.Cogs.Loop_ServerCheck import Loop_ServerCheck
-
 
 
 try:
@@ -98,6 +98,8 @@ class TMSBot(commands.AutoShardedBot):
         print('Cogs:Loop_ServerCheck loaded')
         await self.add_cog(Normal_ServerMember(self))
         print('Cogs:Normal_ServerMember loaded')
+        await self.add_cog(Normal_BasicFunctions(self))
+        print('Cogs:Normal_BasicFunctions loaded')
 
 
         dev_guild_id = self._config["bot"]["dev_guild"]
@@ -118,27 +120,6 @@ class TMSBot(commands.AutoShardedBot):
         print('-'*25)
         print('TMSBot is Online')
         print('-'*25)
-        
-    '''async def on_member_join(self, member):
-        if member.guild.id == int(self._config["function"]["tmsguildid"]):
-            print(f'{member} 加入了伺服器')
-            print('-'*40)
-            
-            renamechannel = member.guild.get_channel(int(self._config["function"]["membercountchannel"]))
-            await renamechannel.edit(name=f'全部人數：{member.guild.member_count}')
-            print(f'更改了人數')
-            print('-'*40)
-    
-    async def on_member_remove(self, member):
-        if member.guild.id == int(self._config["function"]["tmsguildid"]):
-            print(f'{member} 離開了伺服器')
-            print('-'*40)
-            
-            renamechannel = member.guild.get_channel(int(self._config["function"]["membercountchannel"]))
-            await renamechannel.edit(name=f'全部人數：{member.guild.member_count}')
-            print(f'更改了人數')
-            print('-'*40)'''
-
 
 async def main():
     loop = asyncio.new_event_loop()
