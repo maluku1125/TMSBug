@@ -32,7 +32,8 @@ class Normal_ListenMessage(commands.Cog):
                         thread_id = 1225733037782859776  # 討論串 ID
                         thread = self.bot.get_channel(thread_id)
 
-                        await thread.send(f'{message.author.mention} hi，你到會地了')
+                        # await thread.send(f'{message.author.mention} hi，你到會地了')
                         await message.delete()
+                        await message.author.send('https://discord.gg/H2nU6DbZBA \n歡迎加入公會DC')  # 傳送私訊
                     else:
                         await message.delete()

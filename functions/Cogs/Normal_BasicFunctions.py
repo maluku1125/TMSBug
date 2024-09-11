@@ -15,4 +15,4 @@ class Normal_BasicFunctions(commands.Cog):
             return
         
         channel = self.bot.get_channel(588950084658528257) 
-        await channel.send(f"討論串已建立 \nAt:{thread.parent} \nName: {thread.name}\nowner: {thread.owner.mention}")
+        await channel.send(f"討論串已建立 \nAt:{thread.parent.mention} \nName: {thread.mention}\nowner: {thread.owner.mention}")
