@@ -7,31 +7,6 @@ from datetime import datetime
 API_KEY = "sk-proj-dlVgmaeisWkmbnZP6p6AT3BlbkFJ0aXULQV4M2HKIhAqLA0o"
 ORGANIZATRION_ID = "org-qEJ0Fvxg3Ttnz77ptEVGEI8I"
 
-daily_cost = 0.0
-current_day = datetime.now().day
-
-def pricingcount(model, input_token, output_token):
-
-    global daily_cost, current_day
-
-    if model == "gpt-3.5-turbo-Fine-tuning models":
-        price = input_token * 0.003 / 1000 + output_token * 0.006 / 1000
-    elif model == "gpt-4o":
-        price = input_token * 0.005 / 1000 + output_token * 0.015 / 1000
-    elif model == "gpt-4o-mini":
-        price = input_token * 0.000150 / 1000 + output_token * 0.000600 / 1000
-
-    # 更新每日費用
-    daily_cost += price
-
-    # 檢查是否跨日
-    new_day = datetime.now().day
-    if new_day != current_day:
-        daily_cost = 0.0
-        current_day = new_day
-
-    return price, daily_cost
-
 class ChatCompletion:
     def __init__(self, id, choices, created, model, object, system_fingerprint, usage):
         self.id = id
@@ -87,7 +62,6 @@ def AIChat_response(usernick, message):
     start_time = time.time()      
 
     response = client.chat.completions.create(
-        # model="ft:gpt-3.5-turbo-0125:personal::9IZaBQt1",
         model="gpt-4o-mini",
         messages = history,
 
@@ -99,37 +73,12 @@ def AIChat_response(usernick, message):
     )
 
     response_time = time.time() - start_time
-
     response_data = response.to_dict()
-    chat_completion = ChatCompletion(**response_data)
-    message_contents = chat_completion.get_message_contents()    
+        
+    message_contents = response_data['choices'][0]['message']['content']
 
-    # history.append({
-    #     "role": "assistant", 
-    #     "content": f"{message_contents}"
-    # })
-
-    # 如果歷史中的訊息超過 3 則，則刪除除了 system 外最早的訊息
-    # while len(history) > 3:
-    #     index_to_remove = None
-    #     for i in range(len(history)):
-    #         if history[i]["role"] != "system":
-    #             index_to_remove = i
-    #             break
-    #     if index_to_remove is not None:
-    #         del history[index_to_remove]
-
-    
-    total_tokens = response_data['usage']['total_tokens']
-    completion_tokens = response_data['usage']['completion_tokens']
-    prompt_tokens = response_data['usage']['prompt_tokens']
-    total_tokens = response_data['usage']['total_tokens']
-
-    price, daily_cost = pricingcount("gpt-3.5-turbo-Fine-tuning models", total_tokens, completion_tokens)
-     
     print(f'response time : {response_time:.2f} seconds')
     print(f'response : {message_contents}')
-    print(f"Prompt: {prompt_tokens}|Completion: {completion_tokens}|Total : {total_tokens}|Price : {daily_cost:.6f}(+{price:.6f}) USD")
     print('-'*40)
 
     return message_contents
@@ -153,22 +102,13 @@ def AIChat_response_admin(message):
     )
 
     response_time = time.time() - start_time
-
     response_data = response.to_dict()
-    chat_completion = ChatCompletion(**response_data)
-    message_contents = chat_completion.get_message_contents() 
+        
+    message_contents = response_data['choices'][0]['message']['content']
 
-    total_tokens = response_data['usage']['total_tokens']
-    completion_tokens = response_data['usage']['completion_tokens']
-    prompt_tokens = response_data['usage']['prompt_tokens']
-    total_tokens = response_data['usage']['total_tokens']
-
-    price, daily_cost = pricingcount("gpt-4o", total_tokens, completion_tokens)
-     
     print(f'Ai (Admin mode) : using gpt-4o model')
     print(f'response time : {response_time:.2f} seconds')
     print(f'response : {message_contents}')
-    print(f"Prompt: {prompt_tokens}|Completion: {completion_tokens}|Total : {total_tokens}|Price : {daily_cost:.6f}(+{price:.6f}) USD")
     print('-'*40)
 
     return message_contents

@@ -15,7 +15,7 @@ def chat_log_save(SpeakCount, MessageChannel, MessageAuthor, MessageContent, Mes
     else:
         firstfile = False
 
-    ChatLog_output_path = 'C:\\Users\\User\\Desktop\\DiscordChatlog\\ChatLog'
+    ChatLog_output_path = 'C:\\Users\\User\\Desktop\\DiscordBotlog\\ChatLog'
     timestamp = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
 
     if MessageContent == [] :
@@ -48,7 +48,7 @@ def chat_log_save(SpeakCount, MessageChannel, MessageAuthor, MessageContent, Mes
 
 def get_speak_count():
     date = time.strftime('%Y%m%d', time.localtime(time.time()))
-    ChatLog_input_path = 'C:\\Users\\User\\Desktop\\DiscordChatlog\\ChatLog'
+    ChatLog_input_path = 'C:\\Users\\User\\Desktop\\DiscordBotlog\\ChatLog'
 
     try:
         Chat_log_df = pd.read_csv(f'{ChatLog_input_path}\\{date}_TMS新楓之谷_Chatlog.csv') 
@@ -63,7 +63,7 @@ def get_speak_count():
 def chat_log_get():
     date = time.strftime('%Y%m%d', time.localtime(time.time()))
 
-    ChatLog_input_path = 'C:\\Users\\User\\Desktop\\DiscordChatlog\\ChatLog'
+    ChatLog_input_path = 'C:\\Users\\User\\Desktop\\DiscordBotlog\\ChatLog'
 
     Chat_log_df = pd.read_csv(f'{ChatLog_input_path}\\{date}_TMS新楓之谷_Chatlog.csv') 
 

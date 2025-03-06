@@ -14,5 +14,8 @@ class Normal_BasicFunctions(commands.Cog):
         if thread.parent_id in ignore_parent_id:
             return
         
+        if thread.guild.id != 420666881368784929:
+            return
+        
         channel = self.bot.get_channel(588950084658528257) 
         await channel.send(f"討論串已建立 \nAt:{thread.parent.mention} \nName: {thread.mention}\nowner: {thread.owner.mention}")
