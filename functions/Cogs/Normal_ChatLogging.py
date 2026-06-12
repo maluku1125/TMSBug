@@ -1,9 +1,10 @@
 from discord.ext import commands
 import time
+import os
 import discord
 import datetime
 
-from functions.chatlog import chat_log_save
+from functions.chatlog import chat_log_save, chat_log_export_csv
 
 class Normal_ChatLogging(commands.Cog):
     def __init__(self, bot):
@@ -46,10 +47,12 @@ class Normal_ChatLogging(commands.Cog):
             if message.content == 'chatlog' :
                 for r in message.author.roles:
                     if r.id == 477757173863153665:
-                        
-                        date = time.strftime('%Y%m%d', time.localtime(time.time()))
-
-                        await message.channel.send(file = discord.File(f'C:\\Users\\User\\Desktop\\DiscordChatlog\\ChatLog\\{date}_TMS新楓之谷_Chatlog.csv'))
+                        try:
+                            csv_path = chat_log_export_csv()
+                            await message.channel.send(file=discord.File(csv_path))
+                            os.remove(csv_path)  # 傳送後刪除臨時 CSV
+                        except FileNotFoundError:
+                            await message.channel.send('今日尚無聊天記錄。')
                         return
                     
     @commands.Cog.listener()
