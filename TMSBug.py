@@ -16,6 +16,7 @@ from functions.Cogs.Normal_SearchGamer import Normal_SearchGamer
 from functions.Cogs.Normal_AdminFunctions import Normal_AdminFunctions
 from functions.Cogs.Normal_ServerMember import Normal_ServerMember
 from functions.Cogs.Normal_BasicFunctions import Normal_BasicFunctions
+from functions.Cogs.Normal_AntiSpam import Normal_AntiSpam
 from functions.Cogs.Loop_ServerCheck import Loop_ServerCheck
 
 
@@ -100,6 +101,8 @@ class TMSBot(commands.AutoShardedBot):
         print('Cogs:Normal_ServerMember loaded')
         await self.add_cog(Normal_BasicFunctions(self))
         print('Cogs:Normal_BasicFunctions loaded')
+        await self.add_cog(Normal_AntiSpam(self))
+        print('Cogs:Normal_AntiSpam loaded')
 
 
         dev_guild_id = self._config["bot"]["dev_guild"]
@@ -119,6 +122,10 @@ class TMSBot(commands.AutoShardedBot):
 
         print('-'*25)
         print('TMSBot is Online')
+        print('-'*25)
+        print(f'目前在 {len(self.guilds)} 個伺服器：')
+        for guild in self.guilds:
+            print(f'  - {guild.name} (id: {guild.id}, 成員數: {guild.member_count})')
         print('-'*25)
 
 async def main():

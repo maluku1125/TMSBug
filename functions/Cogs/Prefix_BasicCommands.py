@@ -6,8 +6,9 @@ import time
 class Prefix_BasicCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.allowed_role_id = 1067162303411269672 
-        self.log_channel_id = 588950084658528257
+        # 從 config.ini [function] 讀取（缺少鍵時退回原寫死值）
+        self.allowed_role_id = int(bot._config["function"].get("delmsgrole", 1067162303411269672))
+        self.log_channel_id = int(bot._config["function"].get("logchannel", 588950084658528257))
         self.delete_message_count = 0
         self.delete_message_timestamp = time.time()
         self.delete_message_enabled = True
