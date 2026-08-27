@@ -8,7 +8,9 @@ from cryptography.fernet import Fernet
 
 CHATLOG_PATH = 'C:\\Users\\User\\Desktop\\DiscordBotlog\\ChatLog'
 KEY_PATH     = 'C:\\Users\\User\\Desktop\\DiscordBotlog\\chatlog.key'
-LOG_RETENTION_DAYS = 180
+# 訊息內容保留天數：依 Discord Developer Policy，訊息內容不應留存超過
+# 達成功能所需的時間；14 天亦對齊 Discord bulk-delete API 的上限。
+LOG_RETENTION_DAYS = 14
 
 saveddate = ''
 firstfile = False

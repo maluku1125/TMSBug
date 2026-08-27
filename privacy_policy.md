@@ -56,7 +56,7 @@ The Bot receives member data via Discord's **Server Members Intent** when member
 
 **儲存位置**：記錄以每日 CSV 檔案儲存於管理員本機，不上傳至任何雲端服務或第三方。
 
-**保留期限**：聊天記錄保留 **6 個月**，到期後刪除。
+**保留期限**：聊天記錄保留 **14天**，到期後刪除。
 
 The Bot reads message content via Discord's **Message Content Intent** for join request handling, moderator commands, emoji triggers, and **chat logging**.
 

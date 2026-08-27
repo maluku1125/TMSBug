@@ -1,7 +1,10 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from discord.errors import NotFound
 import datetime
+import io
+import logging
 import psutil
 import time
  
@@ -35,9 +38,23 @@ def PrintSlash(type, interaction: discord.Interaction):
     print('-'*40)
 
 
+# 刪除訊息指令的使用限制（沿用原 !delmsg 的規則）
+DELMSG_MAX_PER_WINDOW = 10      # 視窗內最多幾次
+DELMSG_WINDOW_SEC = 1800        # 統計視窗（30 分鐘）
+DELMSG_LOCK_SEC = 86400         # 超量後鎖定時間（24 小時）
+MAX_LOG_ATTACH_MB = 8           # 單一附件超過此大小就只記網址不轉存
+
+
 class Slash_BasicCommands(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
+        cfg = client._config["function"]
+        self.allowed_role_id = int(cfg.get("delmsgrole", 1067162303411269672))
+        self.log_channel_id = int(cfg.get("logchannel", 588950084658528257))
+        self.delete_message_count = 0
+        self.delete_message_timestamp = time.time()
+        self.delete_message_enabled = True
+        self.delete_message_locktime = time.time()
 
     #-----------------ping-----------------
     @app_commands.command(name="ping", description="ping")
@@ -135,3 +152,136 @@ class Slash_BasicCommands(commands.Cog):
         PrintSlash('help', interaction)       
         await interaction.response.send_message(embed=embed)
 
+
+
+    #-----------------delmsg-----------------
+    @app_commands.command(name="delmsg刪除訊息", description="刪除公開頻道的指定訊息並備份到記錄頻道（限特定身分組）")
+    @app_commands.describe(messageid="要刪除的訊息 ID（右鍵訊息 → 複製訊息 ID）")
+    async def delmsg(self, interaction: discord.Interaction, messageid: str):
+        if interaction.guild is None:
+            await interaction.response.send_message("此指令僅能在伺服器中使用。", ephemeral=True)
+            return
+
+        # 權限：需具備指定身分組
+        if not any(r.id == self.allowed_role_id for r in getattr(interaction.user, "roles", [])):
+            await interaction.response.send_message("你沒有權限使用這個指令。", ephemeral=True)
+            return
+
+        # 只允許在「@everyone 可見且可發言」的公開頻道使用，
+        # 避免私密/唯讀頻道（公告、規則、記錄頻道等）的訊息被刪除
+        channel = interaction.channel
+        try:
+            everyone_perms = channel.permissions_for(interaction.guild.default_role)
+            is_public = everyone_perms.view_channel and everyone_perms.send_messages
+        except Exception:
+            is_public = False
+        if not is_public:
+            await interaction.response.send_message(
+                "此頻道不是公開頻道（@everyone 無法檢視或發言），不允許在此刪除訊息。",
+                ephemeral=True)
+            return
+
+        # 使用量限制（超量後鎖定 24 小時）
+        now = time.time()
+        if not self.delete_message_enabled:
+            remain = DELMSG_LOCK_SEC - int(now - self.delete_message_locktime)
+            if remain > 0:
+                await interaction.response.send_message(
+                    f"此指令暫時禁用，{remain} 秒後解鎖。", ephemeral=True)
+                return
+            self.delete_message_enabled = True
+            self.delete_message_count = 0
+
+        if now - self.delete_message_timestamp > DELMSG_WINDOW_SEC:
+            self.delete_message_count = 0
+            self.delete_message_timestamp = now
+
+        if self.delete_message_count >= DELMSG_MAX_PER_WINDOW:
+            self.delete_message_enabled = False
+            self.delete_message_locktime = now
+            await interaction.response.send_message(
+                f"{DELMSG_WINDOW_SEC // 60} 分鐘內只能使用 {DELMSG_MAX_PER_WINDOW} 次此指令。",
+                ephemeral=True)
+            return
+
+        try:
+            mid = int(messageid.strip())
+        except ValueError:
+            await interaction.response.send_message("訊息 ID 必須是數字。", ephemeral=True)
+            return
+
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except NotFound:
+            logging.warning("delmsg: Interaction expired before defer")
+            return
+
+        try:
+            message = await interaction.channel.fetch_message(mid)
+        except discord.NotFound:
+            await interaction.followup.send(f"找不到訊息 {mid}（只能刪除本頻道的訊息）", ephemeral=True)
+            return
+        except discord.Forbidden:
+            await interaction.followup.send(f"沒有權限讀取訊息 {mid}。", ephemeral=True)
+            return
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"讀取訊息時發生錯誤：{e}", ephemeral=True)
+            return
+
+        # 附件必須在「刪除前」下載：訊息一旦刪除，CDN 連結即失效
+        files, oversized = [], []
+        for a in message.attachments:
+            if a.size > MAX_LOG_ATTACH_MB * 1024 * 1024:
+                oversized.append(f"{a.filename} ({a.size / 1024 / 1024:.1f}MB)")
+                continue
+            try:
+                data = await a.read()
+                files.append(discord.File(io.BytesIO(data), filename=a.filename,
+                                          spoiler=a.is_spoiler()))
+            except Exception as e:
+                oversized.append(f"{a.filename}（下載失敗：{e}）")
+
+        self.delete_message_count += 1
+
+        log_channel = self.client.get_channel(self.log_channel_id)
+        if log_channel:
+            embed = discord.Embed(title="訊息刪除備份", color=discord.Color.red(),
+                                  timestamp=datetime.datetime.now())
+            embed.add_field(name="頻道", value=f"{message.channel.mention}", inline=True)
+            embed.add_field(name="訊息ID", value=str(message.id), inline=True)
+            embed.add_field(name="原發送者",
+                            value=f"{message.author.mention}（{message.author}）", inline=False)
+            embed.add_field(name="刪除者",
+                            value=f"{interaction.user.mention}（{interaction.user}）", inline=False)
+            content = message.content or "（無文字內容）"
+            embed.add_field(name="訊息內容", value=content[:1024], inline=False)
+            if oversized:
+                embed.add_field(name="未轉存的附件", value=chr(10).join(oversized)[:1024], inline=False)
+            # 第一張圖直接顯示在 embed 內，其餘以附件形式附上
+            first_img = next((f for f in files
+                              if f.filename.lower().endswith(
+                                  ('.png', '.jpg', '.jpeg', '.gif', '.webp'))), None)
+            if first_img:
+                embed.set_image(url=f"attachment://{first_img.filename}")
+            try:
+                await log_channel.send(embed=embed, files=files)
+            except Exception as e:
+                logging.warning(f"delmsg: 記錄頻道發送失敗 {e}")
+                try:
+                    await log_channel.send(embed=embed)
+                except Exception:
+                    pass
+
+        try:
+            await message.delete()
+        except discord.Forbidden:
+            await interaction.followup.send(f"沒有權限刪除訊息 {mid}。", ephemeral=True)
+            return
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"刪除訊息時發生錯誤：{e}", ephemeral=True)
+            return
+
+        PrintSlash('delmsg', interaction)
+        await interaction.followup.send(
+            f"✅ 已刪除訊息 {mid}（原發送者：{message.author}），備份已存入記錄頻道。",
+            ephemeral=True)

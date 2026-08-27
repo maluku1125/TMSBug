@@ -3,19 +3,24 @@ import discord
 from discord.ext import commands
 from collections import defaultdict, deque
 
-# 偵測參數：60 秒內、相同內容、出現在 >=3 個不同頻道 → 刪訊息 + 禁言 1 小時
-WINDOW_SECONDS = 60
+# 偵測參數：60 秒內、相同內容、出現在 >=3 個不同頻道 → 刪除該人近 5 分鐘所有訊息 + 禁言 1 小時
+WINDOW_SECONDS = 60          # 偵測視窗（相同內容比對範圍）
+RETENTION_SECONDS = 300      # 快取保留時間；觸發時刪除此範圍內該人所有訊息
 TRIGGER_CHANNELS = 3
 TIMEOUT_HOURS = 1
 
 
 def message_key(message):
-    """訊息內容指紋：文字 + 附件(檔名,大小)。同一張圖到處貼也會命中；空訊息回 None。"""
+    """訊息行為指紋：文字 + 是否帶附件。
+
+    不比對附件檔案本身——殭屍帳號會隨機化檔名/檔案大小繞過比對，
+    因此「空文字+帶圖」的訊息彼此視為相同、「同文字+不同圖」亦視為相同。
+    空訊息（無文字無附件）回 None 不納入偵測。"""
     content = (message.content or '').strip()
-    attach_sig = tuple(sorted((a.filename, a.size) for a in message.attachments))
-    if not content and not attach_sig:
+    has_attachment = len(message.attachments) > 0
+    if not content and not has_attachment:
         return None
-    return (content, attach_sig)
+    return (content, has_attachment)
 
 
 class Normal_AntiSpam(commands.Cog):
@@ -46,34 +51,39 @@ class Normal_AntiSpam(commands.Cog):
         dq = self.recent[message.author.id]
         dq.append((now, key, message.channel.id, message))
 
-        # 清除視窗外的舊紀錄
-        while dq and now - dq[0][0] > WINDOW_SECONDS:
+        # 清除保留期(5分鐘)外的舊紀錄
+        while dq and now - dq[0][0] > RETENTION_SECONDS:
             dq.popleft()
 
-        # 相同內容出現在幾個不同頻道
-        matched = [entry for entry in dq if entry[1] == key]
+        # 偵測：60 秒內相同內容出現在幾個不同頻道
+        matched = [entry for entry in dq if entry[1] == key and now - entry[0] <= WINDOW_SECONDS]
         hit_channels = {entry[2] for entry in matched}
         if len(hit_channels) < TRIGGER_CHANNELS:
             return
 
-        # 觸發：先清掉該使用者快取，避免重複觸發
+        # 觸發：該使用者近 5 分鐘的「所有」訊息都要刪（殭屍機器人常一次灑數十則）
+        purge_list = list(dq)
+
+        # 先清掉該使用者快取，避免重複觸發
         del self.recent[message.author.id]
 
         # 控制快取規模：使用者數過多時清掉只剩過期紀錄的項目
         if len(self.recent) > 2000:
-            stale = [uid for uid, q in self.recent.items() if not q or now - q[-1][0] > WINDOW_SECONDS]
+            stale = [uid for uid, q in self.recent.items() if not q or now - q[-1][0] > RETENTION_SECONDS]
             for uid in stale:
                 del self.recent[uid]
 
-        await self._punish(message.author, matched, key, hit_channels)
+        await self._punish(message.author, purge_list, key, hit_channels)
 
-    async def _punish(self, member, matched, key, hit_channels):
-        # 1) 刪除所有命中的訊息
+    async def _punish(self, member, purge_list, key, hit_channels):
+        # 1) 刪除該使用者近 5 分鐘內快取到的「所有」訊息（不限相同內容）
         deleted = 0
-        for _, _, _, msg in matched:
+        purge_channels = set()
+        for _, _, cid, msg in purge_list:
             try:
                 await msg.delete()
                 deleted += 1
+                purge_channels.add(cid)
             except Exception:
                 pass  # 已被刪或無權限
 
@@ -94,10 +104,11 @@ class Normal_AntiSpam(commands.Cog):
         if log_channel is None:
             return
 
-        content_text, attach_sig = key
+        content_text, has_attachment = key
         preview = content_text[:200] if content_text else "(無文字)"
-        if attach_sig:
-            preview += f"\n📎 附件：{', '.join(name for name, _ in attach_sig)}"
+        if has_attachment:
+            filenames = [a.filename for _, _, _, msg in purge_list for a in msg.attachments]
+            preview += f"\n📎 附件：{', '.join(filenames[:6])}"
 
         embed = discord.Embed(
             title="🛡️ 反洗版偵測",
@@ -105,12 +116,12 @@ class Normal_AntiSpam(commands.Cog):
             color=0xff0000,
             timestamp=datetime.datetime.now()
         )
-        embed.add_field(name="訊息內容", value=preview, inline=False)
-        embed.add_field(name="出現頻道", value=' '.join(f"<#{cid}>" for cid in hit_channels), inline=False)
+        embed.add_field(name="觸發訊息內容", value=preview, inline=False)
+        embed.add_field(name="觸發頻道", value=' '.join(f"<#{cid}>" for cid in hit_channels), inline=False)
         embed.add_field(
             name="處置",
             value=(
-                f"🗑️ 已刪除 {deleted}/{len(matched)} 則訊息\n"
+                f"🗑️ 已刪除近 {RETENTION_SECONDS // 60} 分鐘內 {deleted}/{len(purge_list)} 則訊息（共 {len(purge_channels)} 個頻道）\n"
                 f"🔇 禁言 {TIMEOUT_HOURS} 小時：{'✅ 成功' if timeout_error is None else f'❌ 失敗 ({timeout_error})'}"
             ),
             inline=False
