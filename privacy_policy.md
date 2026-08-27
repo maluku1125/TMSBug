@@ -1,6 +1,6 @@
 # 隱私權政策 / Privacy Policy — TMSBug Discord Bot
 
-**最後更新 / Last updated: June 12, 2026**
+**最後更新 / Last updated: August 25, 2026**
 
 ---
 
@@ -24,54 +24,88 @@ TMSBug ("the Bot") is a moderation and utility bot serving a private MapleStory 
 - 加入／離開時間戳記
 - 大頭貼網址
 
-這些資料**僅用於**在指定頻道發送歡迎／離開訊息，以及更新人數顯示頻道名稱。資料**不會在事件處理完畢後保留**。
+這些資料**僅用於**在指定頻道發送歡迎／離開訊息、標示新註冊帳號（帳號建立未滿 14 天者以紅色標示，協助管理員辨識可疑帳號），以及更新人數顯示頻道名稱。資料**不會在事件處理完畢後保留**。
 
-The Bot receives member data via Discord's **Server Members Intent** when members join or leave the server. This includes username, user ID, account creation date, join/leave timestamp, and avatar URL. Data is used solely to post welcome/farewell messages and update the member count channel. It is **not stored** beyond the execution of these events.
+The Bot receives member data via Discord's **Server Members Intent** when members join or leave the server. This includes username, user ID, account creation date, join/leave timestamp, and avatar URL. It is used solely to post welcome/farewell messages, flag newly created accounts (accounts less than 14 days old are highlighted to help moderators identify suspicious accounts), and update the member count channel. Data is **not stored** beyond the execution of these events.
 
 ---
 
-### 2.2 訊息內容與聊天記錄 / Message Content & Chat Logging
+### 2.2 訊息內容 / Message Content
 
 本 Bot 透過 Discord 的 **Message Content Intent** 讀取訊息內容，用途如下：
 
-- 偵測特定觸發詞以處理入會申請
-- 回應管理員指令（例如 `serverinfo`）
-- 依訊息內容觸發表情符號反應
-- **記錄伺服器聊天紀錄**（詳見下方說明）
+1. **聊天記錄**（詳見 2.3）
+2. **反垃圾訊息保護**（詳見 2.4）
+3. **AI 對話助理**（詳見 2.5）
+4. **前綴指令**：回應以指令前綴開頭的訊息（例如 `!ping`）
+5. **關鍵字回應**：辨識特定字句（例如入會申請）並提供對應指引
+6. **管理稽核**：管理員使用刪除訊息指令時，將原訊息內容與附件複製到管理員專用頻道供查核
 
-**聊天記錄儲存（Chat Logging）**
-
-本 Bot 會將伺服器內所有人類使用者（非 Bot）的訊息以 CSV 格式記錄於伺服器管理員的本機裝置。每筆記錄包含：
-
-- 訊息序號與時間戳記
-- 頻道名稱
-- 作者使用者名稱
-- 訊息完整內容
-- 附件與貼圖資訊
-- 訊息編輯前後的版本
-
-**記錄目的**：供伺服器管理員查核違規行為、處理糾紛及維護社群安全。
-
-**存取權限**：聊天記錄僅限具有管理員身份組的成員透過 Bot 指令存取，不對外公開。
-
-**儲存位置**：記錄以每日 CSV 檔案儲存於管理員本機，不上傳至任何雲端服務或第三方。
-
-**保留期限**：聊天記錄保留 **14天**，到期後刪除。
-
-The Bot reads message content via Discord's **Message Content Intent** for join request handling, moderator commands, emoji triggers, and **chat logging**.
-
-**Chat Logging**: The Bot records all non-bot messages in the server to local CSV files on the administrator's machine. Each entry includes a sequence number, timestamp, channel name, author username, full message content, attachments, stickers, and edit history (before/after). This data is used solely for moderation purposes (reviewing rule violations and resolving disputes). Access is restricted to server administrators via a bot command. Logs are stored locally, not uploaded to any cloud service or third party, and are **deleted after 6 months**.
+The Bot reads message content via Discord's **Message Content Intent** for chat logging, anti-spam protection, the AI assistant, prefix commands, keyword-triggered responses, and moderation audit logs.
 
 ---
 
-### 2.3 我們不收集的資料 / Data We Do NOT Collect
+### 2.3 聊天記錄 / Chat Logging
+
+本 Bot 會將伺服器內人類使用者（非 Bot）的訊息記錄於伺服器管理員的本機裝置。每筆記錄包含：訊息序號與時間戳記、頻道名稱、作者使用者名稱、訊息內容、附件與貼圖資訊、訊息編輯前後的版本。
+
+| 項目 | 說明 |
+|---|---|
+| **目的** | 供管理員查核違規行為、處理糾紛及維護社群安全 |
+| **儲存方式** | **以 Fernet（AES）加密**儲存於管理員本機，非明文 |
+| **儲存位置** | 僅本機，**不上傳至任何雲端服務或第三方** |
+| **保留期限** | **14 天**，到期自動刪除 |
+| **存取權限** | 僅具管理員身分組者可透過 Bot 指令存取，不對外公開 |
+
+Chat logs are **encrypted at rest using Fernet (AES)** and stored only on the administrator's local machine. They are **never uploaded to any cloud service or third party**, are **automatically deleted after 14 days**, and are accessible only to server administrators.
+
+---
+
+### 2.4 反垃圾訊息保護 / Anti-Spam Protection
+
+為防範遭盜用帳號的洗版行為，本 Bot 會在記憶體中暫存每位使用者近期的訊息參照（內容特徵、頻道、時間），用以偵測「短時間內於多個頻道張貼相同內容」的模式。
+
+- **偵測條件**：60 秒內、相同內容出現在 3 個以上不同頻道
+- **暫存時間**：最多 5 分鐘，僅存於記憶體，**不寫入磁碟**
+- **觸發後果**：刪除該使用者近 5 分鐘內的訊息，並將該帳號**禁言 1 小時**，同時在管理員頻道留下記錄
+
+若您認為遭到誤判，請聯繫伺服器管理員，禁言可立即解除。
+
+To protect against compromised accounts, the Bot keeps short-lived in-memory references to recent messages (content fingerprint, channel, timestamp) to detect identical content posted across 3 or more channels within 60 seconds. This data is held **in memory only for at most 5 minutes and is never written to disk**. When triggered, the Bot deletes the offending messages and times the account out for 1 hour, logging the action for moderators. If you believe this was in error, contact a moderator — timeouts can be lifted immediately.
+
+---
+
+### 2.5 AI 對話助理與第三方傳輸 / AI Assistant & Third-Party Transfer
+
+**⚠️ 重要：本功能會將您的訊息內容傳送至 Google。**
+
+當您在訊息中 **@提及本 Bot** 時（且僅在此情況下），本 Bot 會將以下資料傳送至 **Google Gemini API** 以產生回覆：
+
+- 您該則訊息的文字內容（上限 500 字）
+- 該則訊息附加的圖片（最多 3 張，單張上限 4 MB）
+- 您的 Discord 顯示名稱與使用者 ID（供 AI 在回覆中標記您）
+
+| 項目 | 說明 |
+|---|---|
+| **觸發條件** | **僅在使用者主動 @提及 Bot 時**；其他所有訊息不會傳送至 Google |
+| **接收方** | Google（Gemini API），適用 [Google 隱私權政策](https://policies.google.com/privacy) |
+| **使用頻率限制** | 每位使用者每 5 分鐘最多 3 次 |
+| **本地保留** | 本 Bot **不另行儲存**送往 AI 的內容或其回覆（聊天記錄另依 2.3 處理） |
+| **如何避免** | **不要 @提及本 Bot** 即可完全避免資料傳送至 Google |
+
+**When you @mention the Bot**, and only then, the Bot sends that message's text (up to 500 characters), up to 3 attached images (max 4 MB each), and your display name and user ID to the **Google Gemini API** to generate a reply. This is subject to [Google's Privacy Policy](https://policies.google.com/privacy). All other messages are never sent to Google. Usage is limited to 3 requests per user per 5 minutes. **To avoid this entirely, simply do not @mention the Bot.**
+
+---
+
+### 2.6 我們不收集的資料 / Data We Do NOT Collect
 
 - 不收集密碼、電子郵件或付款資訊
+- 不使用 Presence Intent，不追蹤您的線上狀態或遊玩活動
 - 不跨伺服器或跨平台追蹤使用者
-- 不將任何資料出售、分享或轉移給第三方
-- 不將資料用於廣告或用戶分析
+- 不將任何資料出售、分享或轉移給第三方（2.5 所述的 AI 功能除外）
+- 不將資料用於廣告、用戶分析或訓練 AI 模型
 
-We do not collect passwords, emails, or payment information. We do not track users across servers or platforms, sell data to third parties, or use data for advertising or profiling.
+We do not collect passwords, emails, or payment information. We do not use the Presence Intent and do not track your online status or activity. We do not track users across servers, sell data, or use data for advertising, profiling, or AI model training. The only third-party transfer is the AI feature described in 2.5.
 
 ---
 
@@ -80,32 +114,46 @@ We do not collect passwords, emails, or payment information. We do not track use
 | 資料類型 / Data Type | 保留期限 / Retention |
 |---|---|
 | 成員加入／離開資訊 Member join/leave info | 不儲存（僅即時處理）Not stored |
-| 訊息內容、作者、頻道 Message content, author, channel | 本地 CSV 儲存，保留 6 個月後刪除 Stored locally in CSV, deleted after 6 months |
-| 訊息編輯紀錄 Message edit history | 同上 Same as above |
-| 彙總訊息計數 Aggregate message count | 本地儲存為累計數字，不含個人資訊 Stored locally, no PII |
+| 聊天記錄（加密）Chat logs (encrypted) | **14 天後自動刪除 / Auto-deleted after 14 days** |
+| 反垃圾訊息暫存 Anti-spam cache | 記憶體中最多 5 分鐘 / In memory, max 5 minutes |
+| 送往 AI 的內容 Content sent to AI | 本 Bot 不另行保留 / Not retained by the Bot |
+| 管理稽核記錄 Moderation audit logs | 留存於管理員專用 Discord 頻道 / Kept in a private staff Discord channel |
+| 彙總訊息計數 Aggregate message count | 純數字統計，不含個人資訊 / Aggregate count only, no PII |
 
 ---
 
 ## 4. 資料安全 / Data Security
 
-本 Bot 運行於私人管理的伺服器上。除 Discord 官方 API 外，成員資料不會傳輸至任何外部服務。Bot 的設定與日誌存取權限僅限伺服器擁有者。
+本 Bot 運行於私人管理的伺服器上。聊天記錄以 Fernet（AES）加密儲存，加密金鑰與記錄分開保管。Bot 的設定、金鑰與日誌存取權限僅限伺服器擁有者。除 Discord API 及 2.5 所述的 Google Gemini API 外，資料不會傳輸至其他外部服務。
 
-The Bot runs on a privately operated server. No member data is transmitted to external services beyond Discord's own API. Access to the Bot's configuration and logs is restricted to the server owner.
+The Bot runs on a privately operated server. Chat logs are encrypted with Fernet (AES), with the key stored separately. Access to configuration, keys, and logs is restricted to the server owner. No data is transmitted to external services other than the Discord API and the Google Gemini API described in 2.5.
 
 ---
 
 ## 5. 第三方服務 / Third-Party Services
 
-本 Bot 使用以下外部 API：
-
-- **Discord API** — 核心 Bot 功能（適用 [Discord 隱私權政策](https://discord.com/privacy)）
-- **楓之谷相關 API** — 遊戲資料查詢（不傳輸個人資料）
-
-The Bot interacts with the Discord API and MapleStory-related game data APIs. No personal data is transmitted to game data APIs.
+| 服務 / Service | 用途 / Purpose | 是否傳輸個人資料 / Personal Data Sent |
+|---|---|---|
+| **Discord API** | 核心 Bot 功能 | 是（[Discord 隱私權政策](https://discord.com/privacy)）|
+| **Google Gemini API** | AI 對話助理（詳見 2.5）| **是** —— 僅在使用者 @提及 Bot 時（[Google 隱私權政策](https://policies.google.com/privacy)）|
+| **Nexon Open API** | 楓之谷遊戲資料查詢 | 否 —— 僅傳送遊戲角色名稱，不含 Discord 個人資料 |
 
 ---
 
-## 6. 兒童隱私 / Children's Privacy
+## 6. 您的權利 / Your Rights
+
+- **查詢**：您可要求得知本 Bot 持有哪些與您相關的資料
+- **刪除**：您可要求刪除您的聊天記錄（未逾 14 天保留期者）
+- **拒絕 AI 功能**：不 @提及本 Bot 即可，無需任何設定
+- **退出**：離開伺服器後，本 Bot 不會再收集您的任何資料
+
+請透過第 8 節的方式聯繫我們行使上述權利。
+
+You may request access to or deletion of your data (within the 14-day retention window), opt out of the AI feature simply by not mentioning the Bot, and leaving the server stops all data collection. Contact us via Section 8.
+
+---
+
+## 7. 兒童隱私 / Children's Privacy
 
 本 Bot 服務於遊戲社群伺服器。我們不會有意收集 13 歲以下用戶的資料。若您認為未成年人的資料遭到收集，請立即聯繫我們。
 
@@ -113,22 +161,14 @@ We do not knowingly collect data from users under the age of 13. If you believe 
 
 ---
 
-## 7. 政策變更 / Changes to This Policy
+## 8. 政策變更與聯絡 / Changes & Contact
 
-本政策可能不定期更新。繼續使用本 Bot 即代表接受更新後的政策內容。文件頂端的「最後更新」日期將反映任何修訂。
+本政策可能不定期更新，文件頂端的「最後更新」日期將反映任何修訂。如對本隱私權政策有任何疑問，或欲行使第 6 節所述權利，請透過 TMS 社群 Discord 伺服器聯繫伺服器擁有者或管理員。
 
-We may update this policy from time to time. Continued use of the Bot constitutes acceptance of any changes. The "Last updated" date will reflect revisions.
-
----
-
-## 8. 聯絡我們 / Contact
-
-如對本隱私權政策有任何疑問，請透過 TMS 社群 Discord 伺服器聯繫伺服器擁有者或管理員。
-
-For questions or concerns, please contact the server owner or moderators via the TMS community Discord server.
+We may update this policy from time to time; the "Last updated" date reflects revisions. For questions or to exercise your rights under Section 6, contact the server owner or moderators via the TMS community Discord server.
 
 ---
 
-*本政策僅適用於 TMSBug Bot（Discord Application ID: 684625575729561609）及其運作的私人伺服器。*
+*本政策僅適用於 TMSBug Bot（Discord Application ID: 1541025225326731365）及其運作的私人伺服器。*
 
-*This Privacy Policy applies solely to the TMSBug bot (Discord Application ID: 684625575729561609) and the private server it operates in.*
+*This Privacy Policy applies solely to the TMSBug bot (Discord Application ID: 1541025225326731365) and the private server it operates in.*
