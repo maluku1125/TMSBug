@@ -4,7 +4,6 @@ import time
 import configparser
 import asyncio
 
-from functions.chatlog import chat_log_cleanup, get_log_count
 from functions.tinyfunctions import probably
 from functions.Cogs.Slash_BasicCommands import Slash_BasicCommands
 from functions.Cogs.Normal_ChatLogging import Normal_ChatLogging
@@ -75,9 +74,6 @@ class TMSBot(commands.AutoShardedBot):
         print('TMSBot is Loading')
         print('-'*25)
         print(f'訊息快取上限 = {self.message_cache_size:,} 則')
-        print(f'今日已記錄的刪除/編輯事件 = {get_log_count()}')
-        # 開機時先清一次過期記錄，避免整天沒有刪除事件而漏掉當日清理
-        chat_log_cleanup()
 
     async def on_ready(self):       
 

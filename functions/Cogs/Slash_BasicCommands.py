@@ -5,12 +5,11 @@ from discord.errors import NotFound
 import datetime
 import io
 import logging
-import os
 import random
 import psutil
 import time
 
-from functions.chatlog import chat_log_export_csv
+# 訊息記錄已改為直接轉貼到 Discord 頻道，不再產生本機檔案
  
 process = psutil.Process()
 
@@ -47,7 +46,7 @@ DELMSG_MAX_PER_WINDOW = 10      # 視窗內最多幾次
 DELMSG_WINDOW_SEC = 1800        # 統計視窗（30 分鐘）
 DELMSG_LOCK_SEC = 86400         # 超量後鎖定時間（24 小時）
 MAX_LOG_ATTACH_MB = 8           # 單一附件超過此大小就只記網址不轉存
-ADMIN_ROLE_ID = 477757173863153665   # serverinfo / chatlog 專用管理身分組
+ADMIN_ROLE_ID = 477757173863153665   # serverinfo 專用管理身分組
 
 
 class Slash_BasicCommands(commands.Cog):
@@ -347,37 +346,3 @@ class Slash_BasicCommands(commands.Cog):
             embed.set_thumbnail(url=g.icon.url)
         PrintSlash('serverinfo', interaction)
         await interaction.response.send_message(embed=embed)
-
-    #-----------------chatlog-----------------
-    @app_commands.command(name="chatlog聊天記錄", description="匯出今日的刪除／編輯訊息記錄 CSV（限管理身分組）")
-    async def chatlog(self, interaction: discord.Interaction):
-        if interaction.guild is None:
-            await interaction.response.send_message("此指令僅能在伺服器中使用。", ephemeral=True)
-            return
-        if not any(r.id == ADMIN_ROLE_ID for r in getattr(interaction.user, "roles", [])):
-            await interaction.response.send_message("你沒有權限使用這個指令。", ephemeral=True)
-            return
-
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except NotFound:
-            logging.warning("chatlog: Interaction expired before defer")
-            return
-
-        try:
-            csv_path = chat_log_export_csv()
-        except FileNotFoundError:
-            await interaction.followup.send('今日尚無刪除／編輯記錄。', ephemeral=True)
-            return
-        except Exception as e:
-            await interaction.followup.send(f'匯出失敗：{e}', ephemeral=True)
-            return
-
-        try:
-            await interaction.followup.send(file=discord.File(csv_path), ephemeral=True)
-        finally:
-            try:
-                os.remove(csv_path)
-            except OSError:
-                pass
-        PrintSlash('chatlog', interaction)
