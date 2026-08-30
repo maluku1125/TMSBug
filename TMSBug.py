@@ -81,8 +81,9 @@ class TMSBot(commands.AutoShardedBot):
 
     async def on_ready(self):       
 
-        await self.add_cog(Prefix_BasicCommands(self))
-        print('Cogs:Prefix_BasicCommands loaded')
+        # 前綴指令已全面改為斜線指令（不再需要 Message Content Intent）
+        # await self.add_cog(Prefix_BasicCommands(self))
+        # print('Cogs:Prefix_BasicCommands loaded')
         await self.add_cog(Slash_BasicCommands(self))
         print('Cogs:Slash_BasicCommands loaded')
         await self.add_cog(Normal_ListenMessage(self))
@@ -93,8 +94,9 @@ class TMSBot(commands.AutoShardedBot):
         print('Cogs:Normal_AIFunctions loaded')
         await self.add_cog(Normal_SearchGamer(self))
         print('Cogs:Normal_SearchGamer loaded')
-        await self.add_cog(Normal_AdminFunctions(self))
-        print('Cogs:Normal_AdminFunctions loaded')
+        # serverinfo 已改為 /serverinfo伺服器資訊 斜線指令
+        # await self.add_cog(Normal_AdminFunctions(self))
+        # print('Cogs:Normal_AdminFunctions loaded')
         # await self.add_cog(Loop_ServerCheck(self))
         # print('Cogs:Loop_ServerCheck loaded')
         await self.add_cog(Normal_ServerMember(self))

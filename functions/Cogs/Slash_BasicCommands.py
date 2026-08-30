@@ -5,8 +5,12 @@ from discord.errors import NotFound
 import datetime
 import io
 import logging
+import os
+import random
 import psutil
 import time
+
+from functions.chatlog import chat_log_export_csv
  
 process = psutil.Process()
 
@@ -43,6 +47,7 @@ DELMSG_MAX_PER_WINDOW = 10      # 視窗內最多幾次
 DELMSG_WINDOW_SEC = 1800        # 統計視窗（30 分鐘）
 DELMSG_LOCK_SEC = 86400         # 超量後鎖定時間（24 小時）
 MAX_LOG_ATTACH_MB = 8           # 單一附件超過此大小就只記網址不轉存
+ADMIN_ROLE_ID = 477757173863153665   # serverinfo / chatlog 專用管理身分組
 
 
 class Slash_BasicCommands(commands.Cog):
@@ -55,6 +60,17 @@ class Slash_BasicCommands(commands.Cog):
         self.delete_message_timestamp = time.time()
         self.delete_message_enabled = True
         self.delete_message_locktime = time.time()
+
+        # Context menu 無法用裝飾器定義在 Cog 內，需手動建立並註冊到指令樹
+        self.delmsg_menu = app_commands.ContextMenu(
+            name="刪除並備份",
+            callback=self.delmsg_context,
+        )
+        client.tree.add_command(self.delmsg_menu)
+
+    async def cog_unload(self):
+        self.client.tree.remove_command(self.delmsg_menu.name,
+                                        type=self.delmsg_menu.type)
 
     #-----------------ping-----------------
     @app_commands.command(name="ping", description="ping")
@@ -154,10 +170,11 @@ class Slash_BasicCommands(commands.Cog):
 
 
 
-    #-----------------delmsg-----------------
-    @app_commands.command(name="delmsg刪除訊息", description="刪除公開頻道的指定訊息並備份到記錄頻道（限特定身分組）")
-    @app_commands.describe(messageid="要刪除的訊息 ID（右鍵訊息 → 複製訊息 ID）")
-    async def delmsg(self, interaction: discord.Interaction, messageid: str):
+    #-----------------delmsg（訊息右鍵選單）-----------------
+    # 使用 Message Context Menu 而非帶訊息ID的斜線指令：
+    # 依 Discord 規範，「右鍵選單指令所作用的訊息」是 Message Content Intent
+    # 的四個例外之一，因此即使未取得該 Intent，仍可讀到完整內容與附件。
+    async def delmsg_context(self, interaction: discord.Interaction, message: discord.Message):
         if interaction.guild is None:
             await interaction.response.send_message("此指令僅能在伺服器中使用。", ephemeral=True)
             return
@@ -167,9 +184,8 @@ class Slash_BasicCommands(commands.Cog):
             await interaction.response.send_message("你沒有權限使用這個指令。", ephemeral=True)
             return
 
-        # 只允許在「@everyone 可見且可發言」的公開頻道使用，
-        # 避免私密/唯讀頻道（公告、規則、記錄頻道等）的訊息被刪除
-        channel = interaction.channel
+        # 只允許在「@everyone 可見且可發言」的公開頻道使用
+        channel = message.channel
         try:
             everyone_perms = channel.permissions_for(interaction.guild.default_role)
             is_public = everyone_perms.view_channel and everyone_perms.send_messages
@@ -205,27 +221,9 @@ class Slash_BasicCommands(commands.Cog):
             return
 
         try:
-            mid = int(messageid.strip())
-        except ValueError:
-            await interaction.response.send_message("訊息 ID 必須是數字。", ephemeral=True)
-            return
-
-        try:
             await interaction.response.defer(ephemeral=True)
         except NotFound:
             logging.warning("delmsg: Interaction expired before defer")
-            return
-
-        try:
-            message = await interaction.channel.fetch_message(mid)
-        except discord.NotFound:
-            await interaction.followup.send(f"找不到訊息 {mid}（只能刪除本頻道的訊息）", ephemeral=True)
-            return
-        except discord.Forbidden:
-            await interaction.followup.send(f"沒有權限讀取訊息 {mid}。", ephemeral=True)
-            return
-        except discord.HTTPException as e:
-            await interaction.followup.send(f"讀取訊息時發生錯誤：{e}", ephemeral=True)
             return
 
         # 附件必須在「刪除前」下載：訊息一旦刪除，CDN 連結即失效
@@ -275,7 +273,7 @@ class Slash_BasicCommands(commands.Cog):
         try:
             await message.delete()
         except discord.Forbidden:
-            await interaction.followup.send(f"沒有權限刪除訊息 {mid}。", ephemeral=True)
+            await interaction.followup.send("沒有權限刪除該訊息。", ephemeral=True)
             return
         except discord.HTTPException as e:
             await interaction.followup.send(f"刪除訊息時發生錯誤：{e}", ephemeral=True)
@@ -283,5 +281,103 @@ class Slash_BasicCommands(commands.Cog):
 
         PrintSlash('delmsg', interaction)
         await interaction.followup.send(
-            f"✅ 已刪除訊息 {mid}（原發送者：{message.author}），備份已存入記錄頻道。",
+            f"✅ 已刪除訊息（原發送者：{message.author}），備份已存入記錄頻道。",
             ephemeral=True)
+
+
+
+    #-----------------hi-----------------
+    @app_commands.command(name="hi", description="打聲招呼")
+    async def hi(self, interaction: discord.Interaction):
+        PrintSlash('hi', interaction)
+        await interaction.response.send_message("Hello, world!")
+
+    #-----------------randnumber-----------------
+    @app_commands.command(name="randnumber抽籤", description="從 1~m 之中隨機抽出 n 個不重複的數字")
+    @app_commands.describe(n="要抽幾個", m="從 1 到多少之間抽")
+    async def randnumber(self, interaction: discord.Interaction, n: int, m: int):
+        if n < 1 or m < 1:
+            await interaction.response.send_message("n 和 m 必須是正整數", ephemeral=True)
+            return
+        if n > m:
+            await interaction.response.send_message("抽的數量不能大於總數", ephemeral=True)
+            return
+        if m > 10000:
+            await interaction.response.send_message("總數上限為 10000", ephemeral=True)
+            return
+        result = random.sample(range(1, m + 1), n)
+        PrintSlash('randnumber', interaction)
+        await interaction.response.send_message(f"隨機選出的數字: {result}")
+
+    #-----------------serverinfo-----------------
+    @app_commands.command(name="serverinfo伺服器資訊", description="顯示伺服器統計資訊（限管理身分組）")
+    async def serverinfo(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            await interaction.response.send_message("此指令僅能在伺服器中使用。", ephemeral=True)
+            return
+        if not any(r.id == ADMIN_ROLE_ID for r in getattr(interaction.user, "roles", [])):
+            await interaction.response.send_message("你沒有權限使用這個指令。", ephemeral=True)
+            return
+
+        g = interaction.guild
+        embed = discord.Embed(title=f"**{g}**",
+                              description=f'Member Count: {g.member_count}',
+                              color=0x32EBA7)
+        embed.add_field(name="**Basic Info**",
+                        value=("```"
+                               f"Owner: {g.owner}\n"
+                               f"Since: {g.created_at.strftime('%Y-%m-%d')}\n```"))
+        embed.add_field(name="**Premium**",
+                        value=("```"
+                               f"Premium Tier      : {g.premium_tier}\n"
+                               f"Subscription count: {g.premium_subscription_count}\n```"))
+        embed.add_field(name="**Channels**",
+                        value=("```"
+                               f"Total Channels Count: {len(g.channels)}\n"
+                               f"Text Channels Count : {len(g.text_channels)}\n"
+                               f"Voice Channels Count: {len(g.voice_channels)}\n"
+                               f"Threads Count       : {len(g.threads)}\n```"),
+                        inline=False)
+        embed.add_field(name="**Emojis & Stickers**",
+                        value=("```"
+                               f"Emojis Count  : {len(g.emojis)}\n"
+                               f"Stickers Count: {len(g.stickers)}\n```"),
+                        inline=False)
+        if g.icon:
+            embed.set_thumbnail(url=g.icon.url)
+        PrintSlash('serverinfo', interaction)
+        await interaction.response.send_message(embed=embed)
+
+    #-----------------chatlog-----------------
+    @app_commands.command(name="chatlog聊天記錄", description="匯出今日聊天記錄 CSV（限管理身分組）")
+    async def chatlog(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            await interaction.response.send_message("此指令僅能在伺服器中使用。", ephemeral=True)
+            return
+        if not any(r.id == ADMIN_ROLE_ID for r in getattr(interaction.user, "roles", [])):
+            await interaction.response.send_message("你沒有權限使用這個指令。", ephemeral=True)
+            return
+
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except NotFound:
+            logging.warning("chatlog: Interaction expired before defer")
+            return
+
+        try:
+            csv_path = chat_log_export_csv()
+        except FileNotFoundError:
+            await interaction.followup.send('今日尚無聊天記錄。', ephemeral=True)
+            return
+        except Exception as e:
+            await interaction.followup.send(f'匯出失敗：{e}', ephemeral=True)
+            return
+
+        try:
+            await interaction.followup.send(file=discord.File(csv_path), ephemeral=True)
+        finally:
+            try:
+                os.remove(csv_path)
+            except OSError:
+                pass
+        PrintSlash('chatlog', interaction)
