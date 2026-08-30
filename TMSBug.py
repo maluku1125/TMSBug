@@ -9,7 +9,7 @@ from functions.chatlog import chat_log_save, get_speak_count
 from functions.tinyfunctions import probably
 from functions.Cogs.Slash_BasicCommands import Slash_BasicCommands
 from functions.Cogs.Normal_ChatLogging import Normal_ChatLogging
-from functions.Cogs.Normal_ListenMessage import Normal_ListenMessage
+# from functions.Cogs.Normal_ListenMessage import Normal_ListenMessage  # img17 已移除
 from functions.Cogs.Normal_AIFunctions import Normal_AIFunctions
 from functions.Cogs.Normal_SearchGamer import Normal_SearchGamer
 from functions.Cogs.Normal_AdminFunctions import Normal_AdminFunctions
@@ -85,8 +85,9 @@ class TMSBot(commands.AutoShardedBot):
         # print('Cogs:Prefix_BasicCommands loaded')
         await self.add_cog(Slash_BasicCommands(self))
         print('Cogs:Slash_BasicCommands loaded')
-        await self.add_cog(Normal_ListenMessage(self))
-        print('Cogs:Normal_ListenMessage loaded')
+        # img17 隨機表情已移除；此 Cog 已無其他功能
+        # await self.add_cog(Normal_ListenMessage(self))
+        # print('Cogs:Normal_ListenMessage loaded')
         await self.add_cog(Normal_ChatLogging(self))
         print('Cogs:Normal_ChatLogging loaded')
         await self.add_cog(Normal_AIFunctions(self))

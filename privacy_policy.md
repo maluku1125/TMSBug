@@ -1,6 +1,6 @@
 # 隱私權政策 / Privacy Policy — TMSBug Discord Bot
 
-**最後更新 / Last updated: August 25, 2026**
+**最後更新 / Last updated: August 30, 2026**
 
 ---
 
@@ -34,14 +34,22 @@ The Bot receives member data via Discord's **Server Members Intent** when member
 
 本 Bot 透過 Discord 的 **Message Content Intent** 讀取訊息內容，用途如下：
 
+本 Bot 透過 Discord 的 **Message Content Intent** 讀取訊息內容，且**僅限以下兩項用途**：
+
 1. **聊天記錄**（詳見 2.3）
 2. **反垃圾訊息保護**（詳見 2.4）
-3. **AI 對話助理**（詳見 2.5）
-4. **前綴指令**：回應以指令前綴開頭的訊息（例如 `!ping`）
-5. **關鍵字回應**：辨識特定字句（例如入會申請）並提供對應指引
-6. **管理稽核**：管理員使用刪除訊息指令時，將原訊息內容與附件複製到管理員專用頻道供查核
 
-The Bot reads message content via Discord's **Message Content Intent** for chat logging, anti-spam protection, the AI assistant, prefix commands, keyword-triggered responses, and moderation audit logs.
+以下功能同樣會處理訊息文字，但**不依賴** Message Content Intent —— 它們屬於 Discord 官方明訂的例外情形，本 Bot 只在使用者主動觸發的那一則訊息上取得內容：
+
+| 功能 | 觸發方式 | 適用例外 |
+|---|---|---|
+| **AI 對話助理**（詳見 2.5）| 使用者 @提及 Bot | 提及 Bot 的訊息 |
+| **刪除並備份**（管理稽核）| 管理員對訊息按右鍵 → 應用程式 | 訊息右鍵選單指令的目標訊息 |
+| **查巴哈**（論壇搜尋）| 使用者對訊息按右鍵 → 應用程式 | 訊息右鍵選單指令的目標訊息 |
+
+其餘所有指令皆為斜線指令（slash command），完全不讀取一般訊息內容。本 Bot 已無任何前綴指令與關鍵字自動回應功能。
+
+The Bot reads message content via the **Message Content Intent** for exactly two purposes: **chat logging** (2.3) and **anti-spam protection** (2.4). Three further features process message text but do **not** rely on the intent — they operate solely through Discord's documented exceptions (messages that @mention the bot, and messages targeted by a message context-menu command): the AI assistant, the moderation backup command, and the forum search command. Every other command is a slash command and reads no message content. The Bot no longer has any prefix commands or keyword auto-responses.
 
 ---
 
