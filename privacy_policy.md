@@ -36,7 +36,7 @@ The Bot receives member data via Discord's **Server Members Intent** when member
 
 本 Bot 透過 Discord 的 **Message Content Intent** 讀取訊息內容，且**僅限以下兩項用途**：
 
-1. **聊天記錄**（詳見 2.3）
+1. **刪除／編輯訊息記錄**（詳見 2.3）
 2. **反垃圾訊息保護**（詳見 2.4）
 
 以下功能同樣會處理訊息文字，但**不依賴** Message Content Intent —— 它們屬於 Discord 官方明訂的例外情形，本 Bot 只在使用者主動觸發的那一則訊息上取得內容：
@@ -49,23 +49,36 @@ The Bot receives member data via Discord's **Server Members Intent** when member
 
 其餘所有指令皆為斜線指令（slash command），完全不讀取一般訊息內容。本 Bot 已無任何前綴指令與關鍵字自動回應功能。
 
-The Bot reads message content via the **Message Content Intent** for exactly two purposes: **chat logging** (2.3) and **anti-spam protection** (2.4). Three further features process message text but do **not** rely on the intent — they operate solely through Discord's documented exceptions (messages that @mention the bot, and messages targeted by a message context-menu command): the AI assistant, the moderation backup command, and the forum search command. Every other command is a slash command and reads no message content. The Bot no longer has any prefix commands or keyword auto-responses.
+The Bot reads message content via the **Message Content Intent** for exactly two purposes: **logging of deleted and edited messages** (2.3) and **anti-spam protection** (2.4). Three further features process message text but do **not** rely on the intent — they operate solely through Discord's documented exceptions (messages that @mention the bot, and messages targeted by a message context-menu command): the AI assistant, the moderation backup command, and the forum search command. Every other command is a slash command and reads no message content. The Bot no longer has any prefix commands or keyword auto-responses.
 
 ---
 
-### 2.3 聊天記錄 / Chat Logging
+### 2.3 刪除／編輯訊息記錄 / Deleted & Edited Message Logging
 
-本 Bot 會將伺服器內人類使用者（非 Bot）的訊息記錄於伺服器管理員的本機裝置。每筆記錄包含：訊息序號與時間戳記、頻道名稱、作者使用者名稱、訊息內容、附件與貼圖資訊、訊息編輯前後的版本。
+**⚠️ 自 2026 年 8 月 30 日起，本 Bot 不再記錄一般聊天訊息。** 您正常發言的內容**不會**被寫入任何檔案。
+
+僅在下列事件發生時，該則訊息才會被寫入加密記錄：
+
+| 事件 | 記錄內容 |
+|---|---|
+| **訊息被刪除** | 該則已刪除訊息的內容 |
+| **訊息被批次刪除** | 同上 |
+| **訊息被編輯** | 編輯**前**與編輯**後**兩個版本 |
+
+理由：這些內容一旦發生就無法再從 Discord 取回（Discord 的稽核日誌只記錄「發生了刪除」而不含內容，也沒有任何 API 可以取回已刪除的訊息），因此是管理員處理檢舉與糾紛時唯一可用的依據。未被刪除或編輯的訊息隨時都能在頻道中查看，不需要另行留存。
+
+每筆記錄包含：事件類型與時間戳記、訊息 ID、頻道名稱、作者使用者名稱、訊息內容、附件與貼圖資訊。
 
 | 項目 | 說明 |
 |---|---|
 | **目的** | 供管理員查核違規行為、處理糾紛及維護社群安全 |
+| **記錄範圍** | **僅**被刪除或被編輯的訊息；僅限本社群伺服器；不含 Bot 訊息、不含私訊 |
 | **儲存方式** | **以 Fernet（AES）加密**儲存於管理員本機，非明文 |
 | **儲存位置** | 僅本機，**不上傳至任何雲端服務或第三方** |
 | **保留期限** | **14 天**，到期自動刪除 |
 | **存取權限** | 僅具管理員身分組者可透過 Bot 指令存取，不對外公開 |
 
-Chat logs are **encrypted at rest using Fernet (AES)** and stored only on the administrator's local machine. They are **never uploaded to any cloud service or third party**, are **automatically deleted after 14 days**, and are accessible only to server administrators.
+**As of August 30, 2026, the Bot no longer logs ordinary chat messages.** A message is written to the encrypted log **only** when it is deleted, bulk-deleted, or edited (in which case both the before and after versions are kept). This is because such content can no longer be retrieved from Discord — the audit log records that a deletion occurred but never its content, and there is no API to retrieve a deleted message — making it the only evidence available to moderators handling reports and disputes. Messages that are never deleted or edited remain visible in the channel and are not stored. Logs are **encrypted at rest using Fernet (AES)**, stored only on the administrator's local machine, **never uploaded to any cloud service or third party**, **automatically deleted after 14 days**, and accessible only to server administrators.
 
 ---
 
@@ -98,7 +111,7 @@ To protect against compromised accounts, the Bot keeps short-lived in-memory ref
 | **觸發條件** | **僅在使用者主動 @提及 Bot 時**；其他所有訊息不會傳送至 Google |
 | **接收方** | Google（Gemini API），適用 [Google 隱私權政策](https://policies.google.com/privacy) |
 | **使用頻率限制** | 每位使用者每 5 分鐘最多 3 次 |
-| **本地保留** | 本 Bot **不另行儲存**送往 AI 的內容或其回覆（聊天記錄另依 2.3 處理） |
+| **本地保留** | 本 Bot **不另行儲存**送往 AI 的內容或其回覆（若該訊息之後被刪除或編輯，則另依 2.3 處理） |
 | **如何避免** | **不要 @提及本 Bot** 即可完全避免資料傳送至 Google |
 
 **When you @mention the Bot**, and only then, the Bot sends that message's text (up to 500 characters), up to 3 attached images (max 4 MB each), and your display name and user ID to the **Google Gemini API** to generate a reply. This is subject to [Google's Privacy Policy](https://policies.google.com/privacy). All other messages are never sent to Google. Usage is limited to 3 requests per user per 5 minutes. **To avoid this entirely, simply do not @mention the Bot.**
@@ -122,7 +135,7 @@ We do not collect passwords, emails, or payment information. We do not use the P
 | 資料類型 / Data Type | 保留期限 / Retention |
 |---|---|
 | 成員加入／離開資訊 Member join/leave info | 不儲存（僅即時處理）Not stored |
-| 聊天記錄（加密）Chat logs (encrypted) | **14 天後自動刪除 / Auto-deleted after 14 days** |
+| 刪除／編輯訊息記錄（加密）Deleted & edited message logs (encrypted) | **14 天後自動刪除 / Auto-deleted after 14 days** |
 | 反垃圾訊息暫存 Anti-spam cache | 記憶體中最多 5 分鐘 / In memory, max 5 minutes |
 | 送往 AI 的內容 Content sent to AI | 本 Bot 不另行保留 / Not retained by the Bot |
 | 管理稽核記錄 Moderation audit logs | 留存於管理員專用 Discord 頻道 / Kept in a private staff Discord channel |
@@ -132,9 +145,9 @@ We do not collect passwords, emails, or payment information. We do not use the P
 
 ## 4. 資料安全 / Data Security
 
-本 Bot 運行於私人管理的伺服器上。聊天記錄以 Fernet（AES）加密儲存，加密金鑰與記錄分開保管。Bot 的設定、金鑰與日誌存取權限僅限伺服器擁有者。除 Discord API 及 2.5 所述的 Google Gemini API 外，資料不會傳輸至其他外部服務。
+本 Bot 運行於私人管理的伺服器上。刪除／編輯訊息記錄以 Fernet（AES）加密儲存，加密金鑰與記錄分開保管。Bot 的設定、金鑰與日誌存取權限僅限伺服器擁有者。除 Discord API 及 2.5 所述的 Google Gemini API 外，資料不會傳輸至其他外部服務。
 
-The Bot runs on a privately operated server. Chat logs are encrypted with Fernet (AES), with the key stored separately. Access to configuration, keys, and logs is restricted to the server owner. No data is transmitted to external services other than the Discord API and the Google Gemini API described in 2.5.
+The Bot runs on a privately operated server. Deleted/edited message logs are encrypted with Fernet (AES), with the key stored separately. Access to configuration, keys, and logs is restricted to the server owner. No data is transmitted to external services other than the Discord API and the Google Gemini API described in 2.5.
 
 ---
 
@@ -151,7 +164,7 @@ The Bot runs on a privately operated server. Chat logs are encrypted with Fernet
 ## 6. 您的權利 / Your Rights
 
 - **查詢**：您可要求得知本 Bot 持有哪些與您相關的資料
-- **刪除**：您可要求刪除您的聊天記錄（未逾 14 天保留期者）
+- **刪除**：您可要求刪除與您有關的刪除／編輯訊息記錄（未逾 14 天保留期者）
 - **拒絕 AI 功能**：不 @提及本 Bot 即可，無需任何設定
 - **退出**：離開伺服器後，本 Bot 不會再收集您的任何資料
 

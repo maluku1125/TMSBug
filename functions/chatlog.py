@@ -1,3 +1,14 @@
+"""訊息記錄（僅記錄「被刪除」與「被編輯」的訊息）
+
+自 2026-08-30 起不再記錄所有訊息，僅在下列事件發生時寫入：
+  Delete      —— 訊息被刪除（含使用者自刪、管理員刪除、反洗版自動刪除）
+  BulkDelete  —— 訊息被批次刪除
+  Edit_Before —— 訊息被編輯前的內容
+  Edit_After  —— 訊息被編輯後的內容
+
+正常聊天不落地，大幅縮小留存範圍；只有「事後無法從 Discord 取回」的內容才保存。
+"""
+
 import time
 import os
 import glob
@@ -12,8 +23,11 @@ KEY_PATH     = 'C:\\Users\\User\\Desktop\\DiscordBotlog\\chatlog.key'
 # 達成功能所需的時間；14 天亦對齊 Discord bulk-delete API 的上限。
 LOG_RETENTION_DAYS = 14
 
+# 匯出 CSV 的欄位順序
+_COLUMNS = ['Event', 'Time', 'Channel', 'Author', 'Content',
+            'Attachments', 'Stickers', 'MessageID']
+
 saveddate = ''
-firstfile = False
 
 # ── 金鑰管理 ────────────────────────────────────────────────
 
@@ -54,27 +68,31 @@ def chat_log_cleanup():
 
 # ── 寫入 ─────────────────────────────────────────────────────
 
-def chat_log_save(SpeakCount, MessageChannel, MessageAuthor, MessageContent, MessageAttachments, MessageStickers):
-    global saveddate, firstfile
+def chat_log_save(Event, MessageChannel, MessageAuthor, MessageContent,
+                  MessageAttachments, MessageStickers, MessageID=None):
+    """寫入一筆事件記錄。
+
+    Event：'Delete' / 'BulkDelete' / 'Edit_Before' / 'Edit_After'
+    僅由 Normal_ChatLogging 的刪除／編輯事件呼叫；一般訊息不會進到這裡。
+    """
+    global saveddate
     date = time.strftime('%Y%m%d', time.localtime(time.time()))
 
     if date != saveddate:
         saveddate = date
-        firstfile = True
         chat_log_cleanup()  # 每天第一次寫入時自動清理
-    else:
-        firstfile = False
 
     timestamp = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
 
     row = {
-        'No.'        : str(SpeakCount),
+        'Event'      : str(Event),
         'Time'       : timestamp,
         'Channel'    : str(MessageChannel),
         'Author'     : str(MessageAuthor),
-        'Content'    : str(MessageContent)    if MessageContent    != [] else '-',
-        'Attachments': str(MessageAttachments) if MessageAttachments != [] else '-',
-        'Stickers'   : str(MessageStickers)   if MessageStickers   != [] else '-',
+        'Content'    : str(MessageContent)     if MessageContent     else '-',
+        'Attachments': str(MessageAttachments) if MessageAttachments else '-',
+        'Stickers'   : str(MessageStickers)    if MessageStickers    else '-',
+        'MessageID'  : str(MessageID)          if MessageID          else '-',
     }
 
     encrypted_line = _fernet.encrypt(json.dumps(row, ensure_ascii=False).encode()).decode()
@@ -94,17 +112,30 @@ def _decrypt_log(filepath) -> pd.DataFrame:
             if not line:
                 continue
             try:
-                rows.append(json.loads(_fernet.decrypt(line.encode()).decode()))
+                row = json.loads(_fernet.decrypt(line.encode()).decode())
             except Exception:
-                pass  # 略過損壞的行
-    return pd.DataFrame(rows)
+                continue  # 略過損壞的行
+            # 相容 2026-08-30 前的舊格式（欄位名為 'No.'，且為逐則記錄的流水號）
+            if 'Event' not in row:
+                old = str(row.pop('No.', '-'))
+                row['Event'] = 'Message(舊)' if old.isdigit() else old
+            row.pop('No.', None)
+            rows.append(row)
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    # 補齊缺漏欄位並固定順序
+    for col in _COLUMNS:
+        if col not in df.columns:
+            df[col] = '-'
+    return df[_COLUMNS].fillna('-')
 
-def get_speak_count() -> int:
+def get_log_count() -> int:
+    """今日已記錄的事件筆數（不解密，只數行）"""
     date = time.strftime('%Y%m%d', time.localtime(time.time()))
     try:
-        df = _decrypt_log(f'{CHATLOG_PATH}\\{date}_TMS新楓之谷_Chatlog.enc')
-        df['No.'] = pd.to_numeric(df['No.'], errors='coerce')
-        return int(df['No.'].max())
+        with open(f'{CHATLOG_PATH}\\{date}_TMS新楓之谷_Chatlog.enc', 'r', encoding='utf-8') as f:
+            return sum(1 for line in f if line.strip())
     except FileNotFoundError:
         return 0
 

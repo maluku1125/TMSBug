@@ -349,7 +349,7 @@ class Slash_BasicCommands(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     #-----------------chatlog-----------------
-    @app_commands.command(name="chatlog聊天記錄", description="匯出今日聊天記錄 CSV（限管理身分組）")
+    @app_commands.command(name="chatlog聊天記錄", description="匯出今日的刪除／編輯訊息記錄 CSV（限管理身分組）")
     async def chatlog(self, interaction: discord.Interaction):
         if interaction.guild is None:
             await interaction.response.send_message("此指令僅能在伺服器中使用。", ephemeral=True)
@@ -367,7 +367,7 @@ class Slash_BasicCommands(commands.Cog):
         try:
             csv_path = chat_log_export_csv()
         except FileNotFoundError:
-            await interaction.followup.send('今日尚無聊天記錄。', ephemeral=True)
+            await interaction.followup.send('今日尚無刪除／編輯記錄。', ephemeral=True)
             return
         except Exception as e:
             await interaction.followup.send(f'匯出失敗：{e}', ephemeral=True)

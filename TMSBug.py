@@ -1,11 +1,10 @@
-import datetime
 import discord
 from discord.ext import commands
 import time
 import configparser
 import asyncio
 
-from functions.chatlog import chat_log_save, get_speak_count
+from functions.chatlog import chat_log_cleanup, get_log_count
 from functions.tinyfunctions import probably
 from functions.Cogs.Slash_BasicCommands import Slash_BasicCommands
 from functions.Cogs.Normal_ChatLogging import Normal_ChatLogging
@@ -44,6 +43,9 @@ class TMSBot(commands.AutoShardedBot):
         allowed_mentions = discord.AllowedMentions(
             roles=True, everyone=False, users=True, replied_user=False
         )
+        # 訊息快取大小：刪除／編輯記錄只對快取內的訊息拿得到內容，
+        # 快取越大能回溯的時間越長（僅存在記憶體，不落地）。
+        message_cache_size = config["bot"].getint("message_cache_size", 10000)
         super().__init__(
             self_bot=True,
             command_prefix=commands.when_mentioned_or(
@@ -54,6 +56,7 @@ class TMSBot(commands.AutoShardedBot):
             heartbeat_timeout=150.0,
             allowed_mentions=allowed_mentions,
             intents=intents,
+            max_messages=message_cache_size,
             # activity=discord.Activity(
             #     type=int(config["bot"]["activity_type"]), name=config["bot"]["activity"]
             # ),
@@ -65,18 +68,16 @@ class TMSBot(commands.AutoShardedBot):
         self.name = config["bot"]["name"]
         self.session = None
         self.uptime = None
-        self.time_date = ''
         self.noticeguilds = []
-        
+        self.message_cache_size = message_cache_size
+
         print('-'*25)
         print('TMSBot is Loading')
         print('-'*25)
-        print(f'ChatLog Count = {get_speak_count()}')
-        self.speak_count = get_speak_count()
-        if self.speak_count != 0 :
-            self.time_date = datetime.datetime.now().strftime('%m%d')
-            print('-'*25)
-            print(f'ChatLog Date = {self.time_date}')
+        print(f'訊息快取上限 = {self.message_cache_size:,} 則')
+        print(f'今日已記錄的刪除/編輯事件 = {get_log_count()}')
+        # 開機時先清一次過期記錄，避免整天沒有刪除事件而漏掉當日清理
+        chat_log_cleanup()
 
     async def on_ready(self):       
 
