@@ -14,7 +14,7 @@ from functions.Cogs.Normal_AdminFunctions import Normal_AdminFunctions
 from functions.Cogs.Normal_ServerMember import Normal_ServerMember
 from functions.Cogs.Normal_BasicFunctions import Normal_BasicFunctions
 from functions.Cogs.Normal_AntiSpam import Normal_AntiSpam
-from functions.Cogs.Loop_ServerCheck import Loop_ServerCheck
+from functions.Cogs.Normal_VoiceRooms import Normal_VoiceRooms
 
 
 try:
@@ -94,14 +94,17 @@ class TMSBot(commands.AutoShardedBot):
         # serverinfo 已改為 /serverinfo伺服器資訊 斜線指令
         # await self.add_cog(Normal_AdminFunctions(self))
         # print('Cogs:Normal_AdminFunctions loaded')
-        # await self.add_cog(Loop_ServerCheck(self))
-        # print('Cogs:Loop_ServerCheck loaded')
         await self.add_cog(Normal_ServerMember(self))
         print('Cogs:Normal_ServerMember loaded')
         await self.add_cog(Normal_BasicFunctions(self))
         print('Cogs:Normal_BasicFunctions loaded')
         await self.add_cog(Normal_AntiSpam(self))
         print('Cogs:Normal_AntiSpam loaded')
+        # on_ready 可能不只觸發一次（重連會再來一輪），重複 add_cog 會丟例外，
+        # 所以這支自己擋一下 —— 它帶著一個 tasks.loop，重複啟動會多跑一份。
+        if self.get_cog('Normal_VoiceRooms') is None:
+            await self.add_cog(Normal_VoiceRooms(self))
+            print('Cogs:Normal_VoiceRooms loaded')
 
 
         dev_guild_id = self._config["bot"]["dev_guild"]
